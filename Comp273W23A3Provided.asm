@@ -1,4 +1,6 @@
 # TODO: YOUR NAME AND STUDENT NUMBER
+# NAME: THEODOR SEMERDZHIEV
+# STUDENT NUMBER: 261118892
 .data
 bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
@@ -25,16 +27,56 @@ z0: .float  0 0
 
 # TODO: define various constants you need in your .data segment here
 
+
+q1_printComplex1: .asciiz " + "
+q1_printComplex2: .asciiz " i"
+float_val1: .float 23.232123
+float_val2: .float 3.141123
+newline_char: .asciiz "\n"
 ########################################################################################
 .text
 	
 	# TODO: Write your function testing code here
-		
-	li $v0 10 # exit
+
+	la $t0, JuliaC1
+	l.s $f13 ($t0)
+	l.s $f14 4($t0)
+	jal printComplex
+
+	
+	li $v0 10
 	syscall
 
 
 # TODO: Write your functions to implement various assignment objectives here
+
+#Prints new line character
+printNewLine:
+	la $a0 newline_char
+	li $v0 4
+	syscall
+	jr $ra
+
+#prints two floats in the following manner: %f1 + %f2 i
+printComplex:
+	#prints first float
+	mov.s $f12 $f13
+	li $v0 2
+	syscall
+	#prints " + "
+	li $v0 4
+	la $a0 q1_printComplex1
+	syscall
+	#prints second float
+	mov.s $f12 $f14
+	li $v0 2
+	syscall
+	#prints "i"
+	li $v0 4
+	la $a0 q1_printComplex2
+	syscall
+	#returns to previous function
+	jr $ra
 
 
 ########################################################################################
