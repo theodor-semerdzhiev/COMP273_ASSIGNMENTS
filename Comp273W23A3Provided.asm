@@ -38,17 +38,56 @@ newline_char: .asciiz "\n"
 	
 	# TODO: Write your function testing code here
 
-	la $t0, JuliaC1
-	l.s $f13 ($t0)
-	l.s $f14 4($t0)
-	jal printComplex
-
+	#la $t0, JuliaC1
+	#l.s $f12 ($t0)
+	#l.s $f13 4($t0)
+	#jal printComplex
 	
+	la $t0, JuliaC1
+	l.s $f12 ($t0)
+	l.s $f13 4($t0)
+	
+	la $t0, JuliaC2
+	l.s $f14 ($t0)
+	l.s $f15 4($t0)
+	
+	li $v0 2
+	
+	jal multComplex
+	
+	mov.s $f12 $f0
+	mov.s $f13 $f1
+	
+	jal printComplex
+	jal printNewLine
+		
 	li $v0 10
 	syscall
 
 
 # TODO: Write your functions to implement various assignment objectives here
+
+iterateVerbose:
+	
+		
+	 
+	
+loop:
+
+
+end_loop: jr $ra
+
+
+#Computes the multiplication of compelx numbers i.e (a + bi)(c + di)
+multComplex:
+	#computes real number, stores it in the $f0 register
+	mul.s $f4 $f12 $f14
+	mul.s $f5 $f13 $f15
+	sub.s $f0 $f4 $f5
+	#computes the imaginary part, stores in the $f1 register
+	mul.s $f4 $f12 $f15
+	mul.s $f5 $f13 $f14
+	add.s $f1 $f4 $f5
 
 #Prints new line character
 printNewLine:
@@ -58,9 +97,10 @@ printNewLine:
 	jr $ra
 
 #prints two floats in the following manner: %f1 + %f2 i
+#arguments are $f12 for real number and $f13 for complex number
 printComplex:
 	#prints first float
-	mov.s $f12 $f13
+	#mov.s $f12 $f13
 	li $v0 2
 	syscall
 	#prints " + "
@@ -68,7 +108,7 @@ printComplex:
 	la $a0 q1_printComplex1
 	syscall
 	#prints second float
-	mov.s $f12 $f14
+	mov.s $f12 $f13
 	li $v0 2
 	syscall
 	#prints "i"
