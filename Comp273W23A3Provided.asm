@@ -75,6 +75,18 @@ newline_char: .asciiz "\n"
 	li $v0 1
 	syscall
 	
+	##tester for the print2ComplexInWindow function
+	li $a0 512
+	li $a1 256
+	
+	jal print2ComplexInWindow
+	
+	mov.s $f12 $f0
+	mov.s $f13 $f1
+	jal printNewLine
+	jal printComplex
+	
+	
 	li $v0 10
 	syscall
 
@@ -113,17 +125,18 @@ print2ComplexInWindow:
 	l.s $f9 4($t0) #loads r
 	
 	#computes x stores it in $f0 return register
-	div.s $f10 $f4 $6
+	div.s $f10 $f4 $f6
 	sub.s $f11 $f8 $f9
 	mul.s $f0 $f10 $f11
-	add.s $f0 $0 $f8
+	add.s $f0 $f0 $f8
 	
 	la $t0 windowlrbt
 	l.s $f8 8($t0) #loads t
 	l.s $f9 12($t0) #loads b
 	
+	#computes y stores it in the $f1 return register
 	div.s $f10 $f5 $f7
-	sub.s $f11 $8 $f9
+	sub.s $f11 $f8 $f9
 	mul.s $f1 $f10 $f11
 	add.s $f1 $f1 $f9
 	
