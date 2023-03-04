@@ -78,10 +78,65 @@ newline_char: .asciiz "\n"
 	li $v0 10
 	syscall
 
-
 # TODO: Write your functions to implement various assignment objectives here
 
-iterateVerbose:
+print2ComplexInWindow:
+	#adds to stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+
+	#converts column param to float
+	#stores it in the $f4 register
+	mtc1 $a0 $f5
+	cvt.s.w $f4 $f5
+	
+	#converts row param to float
+	#stores in the $f5 register
+	mtc1 $a1 $f6
+	cvt.s.w $f5 $f6
+	
+	la $t0 resolution
+	# loads width
+	#stores it in the $f6 register
+	lw $t1 0($t0) 
+	mtc1 $t1 $f7
+	cvt.s.w $f6 $f7
+	
+	# loads height
+	# stores in the $f7 register
+	lw $t1 4($t0) 
+	mtc1 $t1 $f8
+	cvt.s.w $f7 $f8
+	
+	la $t0 windowlrbt
+	l.s $f8 0($t0) #loads l
+	l.s $f9 4($t0) #loads r
+	
+	#computes x stores it in $f0 return register
+	div.s $f10 $f4 $6
+	sub.s $f11 $f8 $f9
+	mul.s $f0 $f10 $f11
+	add.s $f0 $0 $f8
+	
+	la $t0 windowlrbt
+	l.s $f8 8($t0) #loads t
+	l.s $f9 12($t0) #loads b
+	
+	div.s $f10 $f5 $f7
+	sub.s $f11 $8 $f9
+	mul.s $f1 $f10 $f11
+	add.s $f1 $f1 $f9
+	
+	
+	#pop stack
+	lw $ra 0($sp)
+	addi $sp $sp 4	
+	
+
+###########################################
+
+# same as iterateVerbose but without printing to the IO ouput
+iterate:
 	#adds to the stack
 	addi $sp $sp -4
 	sw $ra, 0($sp)
@@ -96,17 +151,17 @@ iterateVerbose:
 	mov.s $f12 $f14
 	mov.s $f13 $f15
 	
-	j while_loop
+	j while_loop_for_iterate
 
-while_loop:
+while_loop_for_iterate:
 	
-	bge $t0 $t1 end_loop # if iteraton count > bound { break; }
+	bge $t0 $t1 end_loop_for_iterate# if iteraton count > bound { break; }
 	mul.s $f6 $f14 $f14 #computes x0^2 
 	mul.s $f7 $f15 $f15 #computes y0^2
 	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
 	
 	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
-	bc1t end_loop #break
+	bc1t end_loop_for_iterate #break
 	
 	#sets parameters for the printComplex function
 	mov.s $f12 $f14 
@@ -131,9 +186,9 @@ while_loop:
 	
 	#increment interation count register
 	addi $t0 $t0 1
-	j while_loop
+	j while_loop_for_iterate
 		
-end_loop:  
+end_loop_for_iterate:
 	#pop stack
 	lw $ra 0($sp)
 	addi $sp $sp 4	
@@ -141,7 +196,69 @@ end_loop:
 	move $v0 $t0
 	jr $ra
 
+###############################################
 
+iterateVerbose:
+	#adds to the stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+
+	li $t0 0 #set intial value of interation count
+	move $t1 $a0 #store are max interation count
+	l.s $f10 bound #$f10 will containt the bound
+	mov.s $f4 $f12 #stores a into $f4
+ 	mov.s $f5 $f13 #stores b into $f5
+	
+	#sets initial parameters for the printComplex function
+	mov.s $f12 $f14
+	mov.s $f13 $f15
+	
+	j while_loop_for_verbose
+
+while_loop_for_verbose:
+	
+	bge $t0 $t1 end_loop_for_verbose # if iteraton count > bound { break; }
+	mul.s $f6 $f14 $f14 #computes x0^2 
+	mul.s $f7 $f15 $f15 #computes y0^2
+	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
+	
+	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
+	bc1t end_loop_for_verbose #break
+	
+	#sets parameters for the printComplex function
+	mov.s $f12 $f14 
+	mov.s $f13 $f15
+	
+	jal printComplex
+	jal printNewLine
+	
+	#computes x0^2 - y0^2 + a 
+	sub.s $f8 $f6 $f7
+	add.s $f8 $f8 $f4
+	
+	#computes 2 * x0 * y0 + b
+	mul.s $f9 $f14 $f15
+	l.s $f6 const_2 #loads constant 2
+	mul.s $f9 $f9 $f6
+	add.s $f9 $f9 $f5
+	
+	# updates $f14 and $f15 for the next iteration
+	mov.s $f14 $f8
+	mov.s $f15 $f9
+	
+	#increment interation count register
+	addi $t0 $t0 1
+	j while_loop_for_verbose
+		
+end_loop_for_verbose:  
+	#pop stack
+	lw $ra 0($sp)
+	addi $sp $sp 4	
+	#update return register
+	move $v0 $t0
+	jr $ra
+
+###################################################
 
 #Computes the multiplication of compelx numbers i.e (a + bi)(c + di)
 # arguments a: $f12, b: $f13, c: $f14, d: $f15
@@ -165,7 +282,7 @@ multComplex:
 	
 	jr $ra
 	
-	
+###########################################	
 
 #Prints new line character
 printNewLine:
@@ -184,6 +301,7 @@ printNewLine:
 	#returns to prev function
 	jr $ra
 
+#############################################
 
 #prints two floats in the following manner: %f1 + %f2 i
 #arguments are $f12 for real number and $f13 for complex number
