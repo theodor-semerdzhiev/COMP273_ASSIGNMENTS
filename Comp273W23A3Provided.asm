@@ -30,18 +30,15 @@ z0: .float  0 0
 
 q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
-float_val1: .float 23.232123
-float_val2: .float 3.141123
+const_2: .float 2
+test_num: .float 1 0
 newline_char: .asciiz "\n"
 ########################################################################################
 .text
 	
 	# TODO: Write your function testing code here
 
-	#la $t0, JuliaC1
-	#l.s $f12 ($t0)
-	#l.s $f13 4($t0)
-	#jal printComplex
+	
 	
 	la $t0, JuliaC1
 	l.s $f12 ($t0)
@@ -51,7 +48,6 @@ newline_char: .asciiz "\n"
 	l.s $f14 ($t0)
 	l.s $f15 4($t0)
 	
-	li $v0 2
 	
 	jal multComplex
 	
@@ -60,7 +56,25 @@ newline_char: .asciiz "\n"
 	
 	jal printComplex
 	jal printNewLine
-		
+	jal printNewLine
+	
+	
+	## tests iterateVerbose
+	li $a0 10
+	la $t0, JuliaC1
+	l.s $f12 ($t0)
+	l.s $f13 4($t0)
+	la $t0, test_num
+	l.s $f14 ($t0)
+	l.s $f15 4($t0)
+	
+	jal iterateVerbose
+	
+	#prints out the return value of iterateVerbose
+	move $a0 $v0
+	li $v0 1
+	syscall
+	
 	li $v0 10
 	syscall
 
@@ -68,18 +82,74 @@ newline_char: .asciiz "\n"
 # TODO: Write your functions to implement various assignment objectives here
 
 iterateVerbose:
+	#adds to the stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+
+	li $t0 0 #set intial value of interation count
+	move $t1 $a0 #store are max interation count
+	l.s $f10 bound #$f10 will containt the bound
+	mov.s $f4 $f12 #stores a into $f4
+ 	mov.s $f5 $f13 #stores b into $f5
 	
+	#sets initial parameters for the printComplex function
+	mov.s $f12 $f14
+	mov.s $f13 $f15
+	
+	j while_loop
+
+while_loop:
+	
+	bge $t0 $t1 end_loop # if iteraton count > bound { break; }
+	mul.s $f6 $f14 $f14 #computes x0^2 
+	mul.s $f7 $f15 $f15 #computes y0^2
+	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
+	
+	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
+	bc1t end_loop #break
+	
+	#sets parameters for the printComplex function
+	mov.s $f12 $f14 
+	mov.s $f13 $f15
+	
+	jal printComplex
+	jal printNewLine
+	
+	#computes x0^2 - y0^2 + a 
+	sub.s $f8 $f6 $f7
+	add.s $f8 $f8 $f4
+	
+	#computes 2 * x0 * y0 + b
+	mul.s $f9 $f14 $f15
+	l.s $f6 const_2 #loads constant 2
+	mul.s $f9 $f9 $f6
+	add.s $f9 $f9 $f5
+	
+	# updates $f14 and $f15 for the next iteration
+	mov.s $f14 $f8
+	mov.s $f15 $f9
+	
+	#increment interation count register
+	addi $t0 $t0 1
+	j while_loop
 		
-	 
-	
-loop:
+end_loop:  
+	#pop stack
+	lw $ra 0($sp)
+	addi $sp $sp 4	
+	#update return register
+	move $v0 $t0
+	jr $ra
 
-
-end_loop: jr $ra
 
 
 #Computes the multiplication of compelx numbers i.e (a + bi)(c + di)
+# arguments a: $f12, b: $f13, c: $f14, d: $f15
 multComplex:
+	#adds to stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+
 	#computes real number, stores it in the $f0 register
 	mul.s $f4 $f12 $f14
 	mul.s $f5 $f13 $f15
@@ -88,33 +158,63 @@ multComplex:
 	mul.s $f4 $f12 $f15
 	mul.s $f5 $f13 $f14
 	add.s $f1 $f4 $f5
+	
+	#pops stack
+	lw $ra 0($sp)
+	addi $sp $sp 4
+	
+	jr $ra
+	
+	
 
 #Prints new line character
 printNewLine:
+	#adds to the stack
+	addi $sp $sp -4
+	sw $ra 0($sp)
+	
+	#prints \n
 	la $a0 newline_char
 	li $v0 4
 	syscall
+	
+	#pops the stack
+	lw $ra 0($sp)
+	addi $sp $sp 4
+	#returns to prev function
 	jr $ra
+
 
 #prints two floats in the following manner: %f1 + %f2 i
 #arguments are $f12 for real number and $f13 for complex number
 printComplex:
+	#adds to stack
+	addi $sp $sp -4
+	sw $ra 0($sp)
+	
 	#prints first float
-	#mov.s $f12 $f13
 	li $v0 2
 	syscall
+	
 	#prints " + "
 	li $v0 4
 	la $a0 q1_printComplex1
 	syscall
+	
 	#prints second float
 	mov.s $f12 $f13
 	li $v0 2
 	syscall
+	
 	#prints "i"
 	li $v0 4
 	la $a0 q1_printComplex2
 	syscall
+	
+	#pops stack
+	lw $ra 0($sp)
+	addi $sp $sp 4
+	
 	#returns to previous function
 	jr $ra
 
