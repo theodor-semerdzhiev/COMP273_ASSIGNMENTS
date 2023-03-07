@@ -110,73 +110,63 @@ drawJulia:
 	lw $t2 0($t1) #stores height in $t2
 	lw $t3 4($t1) #stores width in $t3
 	
-	la $t4 bitmapDisplay #loads bitmapDisplay address into to $t4
+	#loads bitmapDisplay address into to $t4
+	la $t1 bitmapDisplay 
+	lw $t4 0($t1)
+	
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $t0 0
-	li $t1 0
+	li $t0 0 #row
+	li $t1 0 #col
 	
 	j drawJulia_for_loop_1
-	
 	
 drawJulia_for_loop_1: 
 	bge $t0 $t2 drawJulia_for_loop_1_exit
 	bgt $t1 $t3 reset$t1
 	
-	move $a0 $t1
-	li $v0 1
-	syscall 
-	jal printNewLine
+	move $a0 $t0
+	move $a1 $t1
+	jal print2ComplexInWindow
 	
+	move $a0 $t5
+	#$f12 and $f13 are already set
+	mov.s $f14 $f0
+	mov.s $f15 $f1
+	jal iterate
+		
 	addi $t1 $t1 1
 	
-	j drawJulia_for_loop_1
+	bgt $t5 $v0 setColor
+	
+	j setBlack	
 	
 reset$t1:
 	li $t1 0
 	addi $t0 $t0 1
 	
-	move $a0 $t0
-	li $v0 1
-	syscall
-	jal printNewLine
-	
 	j drawJulia_for_loop_1
-	
-drawJulia_for_loop_2:
-	bge $t1 $t3 drawJulia_for_loop_2_exit
-	addi $t1 $t1 1
-	move $a0 $t1
-	li $v0 1
-	syscall
-	
-	j drawJulia_for_loop_2
 	
 #sets the color to 0 (black) if number does not diverge	
 setBlack:
-	sw $zero 0($t6)
-	j drawJulia_for_loop_2
+	sw $zero 0($t4)
+	addi $t4 $t4 4
+	j drawJulia_for_loop_1
 	
 #sets the colot to thee return of computeColor if number does diverge 
 setColor:
-	
 	move $a0 $v0
 	jal computeColour
-	j drawJulia_for_loop_2
-	
-drawJulia_for_loop_2_exit: 
-	#exits nested for loop
+	sw $a0 0($t4)
+	addi $t4 $t4 4
 	j drawJulia_for_loop_1
-
 
 drawJulia_for_loop_1_exit:
 	#pops stack and returs to previous function
 	lw $ra 0($sp)
 	addi $sp $sp 4	
 	jr $ra
-	
-
 	
 ###########################################################################
 print2ComplexInWindow:
@@ -264,9 +254,6 @@ while_loop_for_iterate:
 	#sets parameters for the printComplex function
 	mov.s $f12 $f14 
 	mov.s $f13 $f15
-	
-	jal printComplex
-	jal printNewLine
 	
 	#computes x0^2 - y0^2 + a 
 	sub.s $f8 $f6 $f7
