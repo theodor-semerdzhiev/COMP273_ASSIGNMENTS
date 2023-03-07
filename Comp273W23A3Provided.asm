@@ -88,6 +88,7 @@ newline_char: .asciiz "\n"
 	jal printComplex
 	
 	
+	
 	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
@@ -108,55 +109,56 @@ drawJulia:
 	la $t1 resolution
 	lw $t2 0($t1) #stores height in $t2
 	lw $t3 4($t1) #stores width in $t3
+	
 	la $t4 bitmapDisplay #loads bitmapDisplay address into to $t4
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
+	
+	li $t0 0
+	li $t1 0
 	
 	j drawJulia_for_loop_1
 	
 	
 drawJulia_for_loop_1: 
 	bge $t0 $t2 drawJulia_for_loop_1_exit
+	bgt $t1 $t3 reset$t1
+	
+	move $a0 $t1
+	li $v0 1
+	syscall 
+	jal printNewLine
+	
+	addi $t1 $t1 1
+	
+	j drawJulia_for_loop_1
+	
+reset$t1:
+	li $t1 0
 	addi $t0 $t0 1
 	
-	j drawJulia_for_loop_2
+	move $a0 $t0
+	li $v0 1
+	syscall
+	jal printNewLine
+	
+	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_2:
 	bge $t1 $t3 drawJulia_for_loop_2_exit
 	addi $t1 $t1 1
+	move $a0 $t1
+	li $v0 1
+	syscall
 	
-	#sets parameters for print2ComplexInWindow
-	move $a0 $t0
-	move $a1 $t1
-	jal print2ComplexInWindow #return values in $f0 and $f1
+	j drawJulia_for_loop_2
 	
-	# $f12 and $f13 are already set as parametes
-	move $a0 $t5
-	mov.s $f14 $f0
-	mov.s $f15 $f1
-	jal iterate
-	
-	#computes where to store the pixel value
-	#computes this := bitmapDisplay + 4*(w * row + col)
-	mult $t3 $t0 # w * row
-	mflo $t6
-	add $t6 $t6 $t1 #  w * row + col
-	lw $t7 const_4
-	mult $t6 $t7 # 4*(w * row + col)
-	mflo $t6
-	add $t6 $t6 $t4 # bitmapDisplay + 4*(w * row + col)
-	
-	
-	bgt $t5 $v0 setColor # if n < maxIter goto setColor
-	
-	j setBlack #else goto setBlack
-	
-	
+#sets the color to 0 (black) if number does not diverge	
 setBlack:
 	sw $zero 0($t6)
 	j drawJulia_for_loop_2
 	
-
+#sets the colot to thee return of computeColor if number does diverge 
 setColor:
 	
 	move $a0 $v0
