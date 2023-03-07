@@ -41,51 +41,51 @@ newline_char: .asciiz "\n"
 	
 	
 	
-	la $t0, JuliaC1
-	l.s $f12 ($t0)
-	l.s $f13 4($t0)
+	#la $t0, JuliaC1
+	#l.s $f12 ($t0)
+	#l.s $f13 4($t0)
 	
-	la $t0, JuliaC2
-	l.s $f14 ($t0)
-	l.s $f15 4($t0)
+	#la $t0, JuliaC2
+	#l.s $f14 ($t0)
+	#l.s $f15 4($t0)
 	
 	
-	jal multComplex
+	#jal multComplex
 	
-	mov.s $f12 $f0
-	mov.s $f13 $f1
+	#mov.s $f12 $f0
+	#mov.s $f13 $f1
 	
-	jal printComplex
-	jal printNewLine
-	jal printNewLine
+	#jal printComplex
+	#jal printNewLine
+	#jal printNewLine
 	
 	
 	## tests iterateVerbose
-	li $a0 10
-	la $t0, JuliaC1
-	l.s $f12 ($t0)
-	l.s $f13 4($t0)
-	la $t0, test_num
-	l.s $f14 ($t0)
-	l.s $f15 4($t0)
+	#li $a0 10
+	#la $t0, JuliaC1
+	#l.s $f12 ($t0)
+	#l.s $f13 4($t0)
+	#la $t0, test_num
+	#l.s $f14 ($t0)
+	#l.s $f15 4($t0)
 	
-	jal iterateVerbose
+	#jal iterateVerbose
 	
 	#prints out the return value of iterateVerbose
-	move $a0 $v0
-	li $v0 1
-	syscall
+	#move $a0 $v0
+	#li $v0 1
+	#syscall
 	
 	##tester for the print2ComplexInWindow function
-	li $a0 512
-	li $a1 256
+	#li $a0 512
+	#li $a1 256
 	
-	jal print2ComplexInWindow
+	#jal print2ComplexInWindow
 	
-	mov.s $f12 $f0
-	mov.s $f13 $f1
-	jal printNewLine
-	jal printComplex
+	#mov.s $f12 $f0
+	#mov.s $f13 $f1
+	#jal printNewLine
+	#jal printComplex
 	
 	
 	
@@ -103,16 +103,16 @@ newline_char: .asciiz "\n"
 
 ################################################################################
 drawJulia:
+	#add to stack
 	addi $sp $sp -4
 	sw $ra, 0($sp)
 
 	la $t1 resolution
-	lw $t2 0($t1) #stores height in $t2
-	lw $t3 4($t1) #stores width in $t3
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
 	
 	#loads bitmapDisplay address into to $t4
-	la $t1 bitmapDisplay 
-	lw $t4 0($t1)
+	la $t4 bitmapDisplay
 	
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
@@ -123,26 +123,43 @@ drawJulia:
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
-	bge $t0 $t2 drawJulia_for_loop_1_exit
-	bgt $t1 $t3 reset$t1
+	bgt $t0 $t3 drawJulia_for_loop_1_exit
+	bgt $t1 $t2 reset$t1
 	
-	move $a0 $t0
-	move $a1 $t1
+	move $a0 $t1
+	move $a1 $t0
 	jal print2ComplexInWindow
 	
+	#mov.s $f12 $f0
+	#mov.s $f13 $f1
+	
+	#jal printNewLine
+	#jal printComplex
+	
+	#j drawJulia_for_loop_1_exit
 	move $a0 $t5
 	#$f12 and $f13 are already set
 	mov.s $f14 $f0
 	mov.s $f15 $f1
 	jal iterate
+	#move $a0 $t1
+	#li $v0 1
+	#syscall
+	#jal printNewLine
 		
 	addi $t1 $t1 1
 	
 	bgt $t5 $v0 setColor
 	
-	j setBlack	
+	j setBlack
+	#j drawJulia_for_loop_1
 	
 reset$t1:
+	#move $a0 $t0
+	#li $v0 1
+	#syscall
+	#jal printNewLine
+	
 	li $t1 0
 	addi $t0 $t0 1
 	
@@ -158,6 +175,8 @@ setBlack:
 setColor:
 	move $a0 $v0
 	jal computeColour
+	#li $v0 1
+	#syscall
 	sw $a0 0($t4)
 	addi $t4 $t4 4
 	j drawJulia_for_loop_1
