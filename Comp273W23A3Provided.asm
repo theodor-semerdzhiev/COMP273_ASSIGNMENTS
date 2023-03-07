@@ -140,7 +140,6 @@ print2ComplexInWindow:
 	mul.s $f1 $f10 $f11
 	add.s $f1 $f1 $f9
 	
-	
 	#pop stack
 	lw $ra 0($sp)
 	addi $sp $sp 4	
