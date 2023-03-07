@@ -89,7 +89,7 @@ newline_char: .asciiz "\n"
 	
 	
 	
-	la $t0, JuliaC0
+	la $t0, JuliaC1
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	jal drawJulia
@@ -120,14 +120,15 @@ drawJulia:
 	li $t0 0 #row
 	li $t1 0 #col
 	
+	
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
 	bgt $t0 $t3 drawJulia_for_loop_1_exit
 	bgt $t1 $t2 reset$t1
 	
-	move $a0 $t1
-	move $a1 $t0
+	move $a0 $t0
+	move $a1 $t1
 	jal print2ComplexInWindow
 	
 	#mov.s $f12 $f0
@@ -142,11 +143,17 @@ drawJulia_for_loop_1:
 	mov.s $f14 $f0
 	mov.s $f15 $f1
 	jal iterate
-	#move $a0 $t1
-	#li $v0 1
-	#syscall
-	#jal printNewLine
-		
+	
+	#computes address position for pixel, stores it in $t6
+	mult $t3 $t0
+	mflo $t6
+	add $t6 $t6 $t1
+	li $t7 4
+	mult $t6 $t7
+	mflo $t6
+	add $t6 $t6 $t4
+	
+	
 	addi $t1 $t1 1
 	
 	bgt $t5 $v0 setColor
@@ -167,8 +174,8 @@ reset$t1:
 	
 #sets the color to 0 (black) if number does not diverge	
 setBlack:
-	sw $zero 0($t4)
-	addi $t4 $t4 4
+	sw $zero 0($t6)
+	#addi $t4 $t4 4
 	j drawJulia_for_loop_1
 	
 #sets the colot to thee return of computeColor if number does diverge 
@@ -177,8 +184,8 @@ setColor:
 	jal computeColour
 	#li $v0 1
 	#syscall
-	sw $a0 0($t4)
-	addi $t4 $t4 4
+	sw $a0 0($t6)
+	#addi $t4 $t4 4
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
