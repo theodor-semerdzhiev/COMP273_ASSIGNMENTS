@@ -125,17 +125,19 @@ drawJulia_for_loop_2:
 	bge $t1 $t3 drawJulia_for_loop_2_exit
 	addi $t1 $t1 1
 	
+	#sets parameters for print2ComplexInWindow
 	move $a0 $t0
 	move $a1 $t1
-	jal print2ComplexInWindow
+	jal print2ComplexInWindow #return values in $f0 and $f1
 	
-	move $a0 $t5
 	# $f12 and $f13 are already set as parametes
+	move $a0 $t5
 	mov.s $f14 $f0
 	mov.s $f15 $f1
 	jal iterate
 	
 	#computes where to store the pixel value
+	#computes this := bitmapDisplay + 4*(w * row + col)
 	mult $t3 $t0 # w * row
 	mflo $t6
 	add $t6 $t6 $t1 #  w * row + col
@@ -145,9 +147,9 @@ drawJulia_for_loop_2:
 	add $t6 $t6 $t4 # bitmapDisplay + 4*(w * row + col)
 	
 	
-	bgt $t5 $v0 setColor
+	bgt $t5 $v0 setColor # if n < maxIter goto setColor
 	
-	j setBlack
+	j setBlack #else goto setBlack
 	
 	
 setBlack:
@@ -158,16 +160,16 @@ setBlack:
 setColor:
 	
 	move $a0 $v0
-	li $v0 1
-	syscall
 	jal computeColour
 	j drawJulia_for_loop_2
 	
 drawJulia_for_loop_2_exit: 
+	#exits nested for loop
 	j drawJulia_for_loop_1
 
 
 drawJulia_for_loop_1_exit:
+	#pops stack and returs to previous function
 	lw $ra 0($sp)
 	addi $sp $sp 4	
 	jr $ra
