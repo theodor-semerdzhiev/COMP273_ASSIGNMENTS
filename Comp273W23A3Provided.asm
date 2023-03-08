@@ -32,7 +32,7 @@ q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
 const_2: .float 2
 const_4: .float 4
-test_num: .float 0 0
+test_num: .float 1 1
 newline_char: .asciiz "\n"
 ########################################################################################
 .text
@@ -49,7 +49,7 @@ newline_char: .asciiz "\n"
 	l.s $f14 ($t0)
 	l.s $f15 4($t0)
 	
-	
+		
 	jal multComplex
 	
 	mov.s $f12 $f0
@@ -62,7 +62,7 @@ newline_char: .asciiz "\n"
 	
 	## tests iterateVerbose
 	li $a0 10
-	la $t0, JuliaC1
+	la $t0, JuliaC2
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	la $t0, test_num
@@ -76,6 +76,9 @@ newline_char: .asciiz "\n"
 	li $v0 1
 	syscall
 	
+	#li $v0 10
+	#syscall
+
 	##tester for the print2ComplexInWindow function
 	li $a0 512
 	li $a1 256
@@ -89,7 +92,7 @@ newline_char: .asciiz "\n"
 	
 	
 	
-	la $t0, JuliaC2
+	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	jal drawJulia
@@ -131,7 +134,6 @@ drawJulia_for_loop_1:
 	move $a1 $t7
 	jal pixel2ComplexInWindow
 	
-	
 	#runs iterate
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
@@ -142,11 +144,54 @@ drawJulia_for_loop_1:
 	mov.s $f15 $f1
 	jal iterate
 	
-	move $a0 $v0
-	li $v0 1
-	syscall
+	la $t2 maxIter
+	lw $t5 0($t2) #loads maxiIter
+	li $t5 1
 	
-	jal printNewLine
+	addi $t7 $t7 1
+	
+	beq $t5 $v0 setColor
+	
+	
+	j setBlack
+	
+	#j drawJulia_for_loop_1
+	
+reset$t1:
+	li $t7 0
+	addi $t6 $t6 1
+	
+	j drawJulia_for_loop_1
+	
+	
+#sets the color to 0 (black) if number does not diverge	
+setBlack:
+	#computes pixel address, stores it in $t1
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
+	la $t0 bitmapDisplay
+	
+	mult $t2 $t6
+	mflo $t1
+	add $t1 $t1 $t7
+	li $t2 4
+	mult $t2 $t1
+	mflo $t1
+	add $t1 $t1 $t0
+	
+	sw $zero 0($t1)
+	j drawJulia_for_loop_1
+	
+	
+#sets the colot to thee return of computeColor if number does diverge 
+setColor:
+	#UNFINISHED
+	
+	#move $a0 $v0
+	li $a0 1203
+	
+	#jal computeColour
 	
 	#computes pixel address, stores it in $t1
 	la $t1 resolution
@@ -162,33 +207,6 @@ drawJulia_for_loop_1:
 	mflo $t1
 	add $t1 $t1 $t0
 	
-	addi $t7 $t7 1
-	
-	li $t2 232
-	sw $t2 0($t1)
-	
-	
-	j drawJulia_for_loop_1
-	
-reset$t1:
-	li $t7 0
-	addi $t6 $t6 1
-	
-	j drawJulia_for_loop_1
-	
-	
-#sets the color to 0 (black) if number does not diverge	
-setBlack:
-	#UNFINISHED
-	sw $zero 0($t1)
-	j drawJulia_for_loop_1
-	
-	
-#sets the colot to thee return of computeColor if number does diverge 
-setColor:
-	#UNFINISHED
-	
-	jal computeColour
 	sw $a0 0($t1)
 			
 	j drawJulia_for_loop_1
