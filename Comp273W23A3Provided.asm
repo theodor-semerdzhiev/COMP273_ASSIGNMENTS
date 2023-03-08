@@ -32,7 +32,7 @@ q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
 const_2: .float 2
 const_4: .float 4
-test_num: .float 1 0
+test_num: .float 0 0
 newline_char: .asciiz "\n"
 ########################################################################################
 .text
@@ -41,55 +41,55 @@ newline_char: .asciiz "\n"
 	
 	
 	
-	#la $t0, JuliaC1
-	#l.s $f12 ($t0)
-	#l.s $f13 4($t0)
+	la $t0, JuliaC1
+	l.s $f12 ($t0)
+	l.s $f13 4($t0)
 	
-	#la $t0, JuliaC2
-	#l.s $f14 ($t0)
-	#l.s $f15 4($t0)
+	la $t0, JuliaC2
+	l.s $f14 ($t0)
+	l.s $f15 4($t0)
 	
 	
-	#jal multComplex
+	jal multComplex
 	
-	#mov.s $f12 $f0
-	#mov.s $f13 $f1
+	mov.s $f12 $f0
+	mov.s $f13 $f1
 	
-	#jal printComplex
-	#jal printNewLine
-	#jal printNewLine
+	jal printComplex
+	jal printNewLine
+	jal printNewLine
 	
 	
 	## tests iterateVerbose
-	#li $a0 10
-	#la $t0, JuliaC1
-	#l.s $f12 ($t0)
-	#l.s $f13 4($t0)
-	#la $t0, test_num
-	#l.s $f14 ($t0)
-	#l.s $f15 4($t0)
+	li $a0 10
+	la $t0, JuliaC1
+	l.s $f12 ($t0)
+	l.s $f13 4($t0)
+	la $t0, test_num
+	l.s $f14 ($t0)
+	l.s $f15 4($t0)
 	
-	#jal iterateVerbose
+	jal iterate
 	
 	#prints out the return value of iterateVerbose
-	#move $a0 $v0
-	#li $v0 1
-	#syscall
+	move $a0 $v0
+	li $v0 1
+	syscall
 	
 	##tester for the print2ComplexInWindow function
-	#li $a0 512
-	#li $a1 256
+	li $a0 512
+	li $a1 256
 	
-	#jal print2ComplexInWindow
+	jal pixel2ComplexInWindow
 	
-	#mov.s $f12 $f0
-	#mov.s $f13 $f1
-	#jal printNewLine
-	#jal printComplex
+	mov.s $f12 $f0
+	mov.s $f13 $f1
+	jal printNewLine
+	jal printComplex
 	
 	
 	
-	la $t0, JuliaC1
+	la $t0, JuliaC2
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	jal drawJulia
@@ -107,85 +107,90 @@ drawJulia:
 	addi $sp $sp -4
 	sw $ra, 0($sp)
 
-	la $t1 resolution
-	lw $t2 0($t1) # stores height in $t2
-	lw $t3 4($t1) # stores width in $t3
-	
-	#loads bitmapDisplay address into to $t4
-	la $t4 bitmapDisplay
-	
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $t0 0 #row
-	li $t1 0 #col
-	
+	li $t6 0 #row
+	li $t7 0 #col
+	mov.s $f20 $f12
+	mov.s $f21 $f13
 	
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
-	bgt $t0 $t3 drawJulia_for_loop_1_exit
-	bgt $t1 $t2 reset$t1
+	#WRITE CODE	
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
 	
-	move $a0 $t0
-	move $a1 $t1
-	jal print2ComplexInWindow
+	bgt $t6 $t3 drawJulia_for_loop_1_exit
+	bgt $t7 $t2 reset$t1
 	
-	#mov.s $f12 $f0
-	#mov.s $f13 $f1
+	#runs pixel2ComplexInWindow
+	move $a0 $t6
+	move $a1 $t7
+	jal pixel2ComplexInWindow
 	
-	#jal printNewLine
-	#jal printComplex
 	
-	#j drawJulia_for_loop_1_exit
+	#runs iterate
+	la $t1 maxIter
+	lw $t5 0($t1) #loads n into $t5
 	move $a0 $t5
-	#$f12 and $f13 are already set
+	mov.s $f12 $f21
+	mov.s $f13 $f20
 	mov.s $f14 $f0
 	mov.s $f15 $f1
 	jal iterate
 	
-	#computes address position for pixel, stores it in $t6
-	mult $t3 $t0
-	mflo $t6
-	add $t6 $t6 $t1
-	li $t7 4
-	mult $t6 $t7
-	mflo $t6
-	add $t6 $t6 $t4
+	move $a0 $v0
+	li $v0 1
+	syscall
 	
+	jal printNewLine
 	
-	addi $t1 $t1 1
+	#computes pixel address, stores it in $t1
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
+	la $t0 bitmapDisplay
 	
-	bgt $t5 $v0 setColor
+	mult $t2 $t6
+	mflo $t1
+	add $t1 $t1 $t7
+	li $t2 4
+	mult $t2 $t1
+	mflo $t1
+	add $t1 $t1 $t0
 	
-	j setBlack
-	#j drawJulia_for_loop_1
+	addi $t7 $t7 1
 	
-reset$t1:
-	#move $a0 $t0
-	#li $v0 1
-	#syscall
-	#jal printNewLine
+	li $t2 232
+	sw $t2 0($t1)
 	
-	li $t1 0
-	addi $t0 $t0 1
 	
 	j drawJulia_for_loop_1
+	
+reset$t1:
+	li $t7 0
+	addi $t6 $t6 1
+	
+	j drawJulia_for_loop_1
+	
 	
 #sets the color to 0 (black) if number does not diverge	
 setBlack:
-	sw $zero 0($t6)
-	#addi $t4 $t4 4
+	#UNFINISHED
+	sw $zero 0($t1)
 	j drawJulia_for_loop_1
+	
 	
 #sets the colot to thee return of computeColor if number does diverge 
 setColor:
-	move $a0 $v0
+	#UNFINISHED
+	
 	jal computeColour
-	#li $v0 1
-	#syscall
-	sw $a0 0($t6)
-	#addi $t4 $t4 4
+	sw $a0 0($t1)
+			
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
@@ -195,7 +200,7 @@ drawJulia_for_loop_1_exit:
 	jr $ra
 	
 ###########################################################################
-print2ComplexInWindow:
+pixel2ComplexInWindow:
 	#adds to stack
 	addi $sp $sp -4
 	sw $ra, 0($sp)
@@ -256,7 +261,7 @@ iterate:
 	sw $ra, 0($sp)
 
 	li $t0 0 #set intial value of interation count
-	move $t1 $a0 #store are max interation count
+	#move $t1 $a0 #store are max interation count
 	l.s $f10 bound #$f10 will containt the bound
 	mov.s $f4 $f12 #stores a into $f4
  	mov.s $f5 $f13 #stores b into $f5
@@ -269,7 +274,7 @@ iterate:
 
 while_loop_for_iterate:
 	
-	bge $t0 $t1 end_loop_for_iterate# if iteraton count > bound { break; }
+	bge $t0 $a0 end_loop_for_iterate# if iteraton count > bound { break; }
 	mul.s $f6 $f14 $f14 #computes x0^2 
 	mul.s $f7 $f15 $f15 #computes y0^2
 	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
