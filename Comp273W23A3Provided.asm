@@ -32,7 +32,7 @@ q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
 const_2: .float 2
 const_4: .float 4
-test_num: .float 1 1
+test_num: .float 1 0
 newline_char: .asciiz "\n"
 ########################################################################################
 .text
@@ -62,20 +62,22 @@ newline_char: .asciiz "\n"
 	
 	## tests iterateVerbose
 	li $a0 10
-	la $t0, JuliaC2
+	la $t0, JuliaC1
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	la $t0, test_num
 	l.s $f14 ($t0)
 	l.s $f15 4($t0)
 	
-	jal iterate
+	jal iterateVerbose
 	
 	#prints out the return value of iterateVerbose
 	move $a0 $v0
 	li $v0 1
 	syscall
 	
+	#li $v0 10
+	#syscall
 	#li $v0 10
 	#syscall
 
@@ -115,8 +117,8 @@ drawJulia:
 	
 	li $t6 0 #row
 	li $t7 0 #col
-	mov.s $f20 $f12
-	mov.s $f21 $f13
+	mov.s $f20 $f12 #TODO save $f20 to stack
+	mov.s $f21 $f13 #TODO save $f21 to stack
 	
 	j drawJulia_for_loop_1
 	
@@ -126,32 +128,43 @@ drawJulia_for_loop_1:
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
 	
+	
 	bgt $t6 $t3 drawJulia_for_loop_1_exit
 	bgt $t7 $t2 reset$t1
 	
+	#saves iteration numbers
+	addi $sp $sp -4
+	sw $t6, 0($sp)
+	addi $sp $sp -4
+	sw $t7, 0($sp)
+	
 	#runs pixel2ComplexInWindow
-	move $a0 $t6
-	move $a1 $t7
+	move $a0 $t7
+	move $a1 $t6
 	jal pixel2ComplexInWindow
 	
 	#runs iterate
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	move $a0 $t5
-	mov.s $f12 $f21
-	mov.s $f13 $f20
-	mov.s $f14 $f0
-	mov.s $f15 $f1
+	mov.s $f14 $f20
+	mov.s $f15 $f21
+	mov.s $f12 $f0
+	mov.s $f13 $f1
 	jal iterate
 	
 	la $t2 maxIter
 	lw $t5 0($t2) #loads maxiIter
-	li $t5 1
+	
+	#gets iteration numbers
+	lw $t7 0($sp)
+	addi $sp $sp 4	
+	lw $t6 0($sp)
+	addi $sp $sp 4	
 	
 	addi $t7 $t7 1
 	
-	beq $t5 $v0 setColor
-	
+	bgt $t5 $v0 setColor
 	
 	j setBlack
 	
@@ -189,9 +202,9 @@ setColor:
 	#UNFINISHED
 	
 	#move $a0 $v0
-	li $a0 1203
+	move $a0 $v0
 	
-	#jal computeColour
+	jal computeColour
 	
 	#computes pixel address, stores it in $t1
 	la $t1 resolution
@@ -285,8 +298,8 @@ iterate:
  	mov.s $f5 $f13 #stores b into $f5
 	
 	#sets initial parameters for the printComplex function
-	mov.s $f12 $f14
-	mov.s $f13 $f15
+	#mov.s $f12 $f14
+	#mov.s $f13 $f15
 	
 	j while_loop_for_iterate
 
@@ -300,19 +313,15 @@ while_loop_for_iterate:
 	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
 	bc1t end_loop_for_iterate #break
 	
-	#sets parameters for the printComplex function
-	mov.s $f12 $f14 
-	mov.s $f13 $f15
-	
 	#computes x0^2 - y0^2 + a 
 	sub.s $f8 $f6 $f7
-	add.s $f8 $f8 $f4
+	add.s $f8 $f8 $f12
 	
 	#computes 2 * x0 * y0 + b
 	mul.s $f9 $f14 $f15
 	l.s $f6 const_2 #loads constant 2
 	mul.s $f9 $f9 $f6
-	add.s $f9 $f9 $f5
+	add.s $f9 $f9 $f13
 	
 	# updates $f14 and $f15 for the next iteration
 	mov.s $f14 $f8
@@ -344,8 +353,8 @@ iterateVerbose:
  	mov.s $f5 $f13 #stores b into $f5
 	
 	#sets initial parameters for the printComplex function
-	mov.s $f12 $f14
-	mov.s $f13 $f15
+	#mov.s $f12 $f14
+	#mov.s $f13 $f15
 	
 	j while_loop_for_verbose
 
