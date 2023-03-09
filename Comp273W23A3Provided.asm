@@ -13,7 +13,7 @@ windowlrbt:
  
 bound: .float 100	# bound for testing for unbounded growth during iteration
 maxIter: .word 16	# maximum iteration count to be used by drawJulia and drawMandelbrot
-scale: .word 16		# scale parameter used by computeColour
+scale: .word 16	# scale parameter used by computeColour
 
 # Julia constants for testing, or likewise for more examples see
 # https://en.wikipedia.org/wiki/Julia_set#Quadratic_polynomials  
@@ -62,28 +62,27 @@ newline_char: .asciiz "\n"
 	
 	## tests iterateVerbose
 	li $a0 10
-	la $t0, JuliaC1
+	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	la $t0, test_num
 	l.s $f14 ($t0)
 	l.s $f15 4($t0)
 	
-	jal iterateVerbose
+	jal iterate
 	
 	#prints out the return value of iterateVerbose
-	move $a0 $v0
-	li $v0 1
-	syscall
+	#move $a0 $v0
+	#li $v0 1
+	#syscall
 	
 	#li $v0 10
 	#syscall
-	#li $v0 10
-	#syscall
+	
 
 	##tester for the print2ComplexInWindow function
-	li $a0 512
-	li $a1 256
+	li $a0 0
+	li $a1 0
 	
 	jal pixel2ComplexInWindow
 	
@@ -92,9 +91,10 @@ newline_char: .asciiz "\n"
 	jal printNewLine
 	jal printComplex
 	
+	#li $v0 10
+	#syscall
 	
-	
-	la $t0, JuliaC0
+	la $t0, JuliaC1
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	jal drawJulia
@@ -143,14 +143,14 @@ drawJulia_for_loop_1:
 	move $a1 $t6
 	jal pixel2ComplexInWindow
 	
-	#runs iterate
+	#runs iterate, setting all the parameters
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	move $a0 $t5
-	mov.s $f14 $f20
-	mov.s $f15 $f21
-	mov.s $f12 $f0
-	mov.s $f13 $f1
+	mov.s $f14 $f0
+	mov.s $f15 $f1
+	mov.s $f12 $f20
+	mov.s $f13 $f21
 	jal iterate
 	
 	la $t2 maxIter
@@ -200,11 +200,22 @@ setBlack:
 #sets the colot to thee return of computeColor if number does diverge 
 setColor:
 	#UNFINISHED
-	
-	#move $a0 $v0
+
 	move $a0 $v0
 	
+	#saves iteration count registers
+	addi $sp $sp -4
+	sw $t6, 0($sp)
+	addi $sp $sp -4
+	sw $t7, 0($sp)
+	
 	jal computeColour
+	
+	#gets iteration count registers
+	lw $t7 0($sp)
+	addi $sp $sp 4	
+	lw $t6 0($sp)
+	addi $sp $sp 4	
 	
 	#computes pixel address, stores it in $t1
 	la $t1 resolution
@@ -265,19 +276,19 @@ pixel2ComplexInWindow:
 	
 	#computes x stores it in $f0 return register
 	div.s $f10 $f4 $f6
-	sub.s $f11 $f8 $f9
+	sub.s $f11 $f9 $f8
 	mul.s $f0 $f10 $f11
 	add.s $f0 $f0 $f8
 	
 	la $t0 windowlrbt
-	l.s $f8 8($t0) #loads t
-	l.s $f9 12($t0) #loads b
+	l.s $f8 8($t0) #loads b
+	l.s $f9 12($t0) #loads t
 	
 	#computes y stores it in the $f1 return register
 	div.s $f10 $f5 $f7
-	sub.s $f11 $f8 $f9
+	sub.s $f11 $f9 $f8
 	mul.s $f1 $f10 $f11
-	add.s $f1 $f1 $f9
+	add.s $f1 $f1 $f8
 	
 	#pop stack
 	lw $ra 0($sp)
