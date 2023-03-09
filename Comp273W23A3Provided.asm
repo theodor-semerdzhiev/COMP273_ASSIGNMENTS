@@ -120,6 +120,12 @@ drawJulia:
 	mov.s $f20 $f12 #TODO save $f20 to stack
 	mov.s $f21 $f13 #TODO save $f21 to stack
 	
+	#stores parameters into the stack
+	addi $sp $sp -4
+	swc1 $f12, 0($sp)
+	addi $sp $sp -4
+	swc1 $f13, 0($sp)
+	
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
@@ -151,6 +157,9 @@ drawJulia_for_loop_1:
 	mov.s $f15 $f1
 	mov.s $f12 $f20
 	mov.s $f13 $f21
+	
+	#l.s $f12 -8($sp)
+	#l.s $f13 -12($sp)
 	jal iterate
 	
 	la $t2 maxIter
@@ -199,10 +208,7 @@ setBlack:
 	
 #sets the colot to thee return of computeColor if number does diverge 
 setColor:
-	#UNFINISHED
-
 	move $a0 $v0
-	
 	#saves iteration count registers
 	addi $sp $sp -4
 	sw $t6, 0($sp)
@@ -231,12 +237,15 @@ setColor:
 	mflo $t1
 	add $t1 $t1 $t0
 	
-	sw $a0 0($t1)
+	sw $v0 0($t1)
 			
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
-	#pops stack and returs to previous function
+	#pops stack (including the parameters) and returs to previous function
+	addi $sp $sp 4	
+	addi $sp $sp 4	
+	
 	lw $ra 0($sp)
 	addi $sp $sp 4	
 	jr $ra
