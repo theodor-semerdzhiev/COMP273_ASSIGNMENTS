@@ -106,41 +106,40 @@ drawJulia:
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $s0 0 #row
+	li $s0 -1 #row
 	li $s1 0 #col
-	mov.s $f20 $f12 #saves first parameters to $f20 
-	mov.s $f21 $f13 #saves first parameters to $f21
+	mov.s $f20 $f12 #saves first parameters to $f20 save register
+	mov.s $f21 $f13 #saves first parameters to $f21 save register
 	
-	addi $sp $sp -4
-	swc1 $f12, 0($sp)
-	addi $sp $sp -4
-	swc1 $f13, 0($sp)
-	
+
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
 		
+	
 	la $t1 resolution
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
 
-	#subi $t3 $t3 -1
-	
+	addi $t3 $t3 -1
+	#addi $t2 $t2 1
 	#checks exit conditions
-	bgt $s0 $t3 drawJulia_for_loop_1_exit
+	beq $s0 $t3 drawJulia_for_loop_1_exit
 	bgt $s1 $t2 reset$s1
 	
+	addi $s1 $s1 1
+	
 	#saves iteration numbers to stack
-	#addi $sp $sp -4
-	#sw $s0, 0($sp)
-	#addi $sp $sp -4
-	#sw $s1, 0($sp)
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
 	
 	#stores parameters to stack
-	#addi $sp $sp -4
-	#swc1 $f20, 0($sp)
-	#addi $sp $sp -4
-	#swc1 $f21, 0($sp)
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
 	
 	#runs pixel2ComplexInWindow
 	move $a0 $s1
@@ -148,10 +147,10 @@ drawJulia_for_loop_1:
 	jal pixel2ComplexInWindow
 	
 	#gets parameters saved in stack
-	#lwc1 $f21 0($sp)
-	#addi $sp $sp 4	
-	#lwc1 $f20 0($sp)
-	#addi $sp $sp 4	
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
 	
 	#runs iterate, setting all the parameters first
 	la $t1 maxIter
@@ -163,29 +162,27 @@ drawJulia_for_loop_1:
 	mov.s $f15 $f1
 
 	#saves parameters back to the stack before calling iterate
-	#addi $sp $sp -4
-	#swc1 $f20, 0($sp)
-	#addi $sp $sp -4
-	#swc1 $f21, 0($sp)
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
 	
 	jal iterate
 	
 	#loads paramters frim the stack, again
-	#lwc1 $f21 0($sp)
-	#addi $sp $sp 4	
-	#lwc1 $f20 0($sp)
-	#addi $sp $sp 4	
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
 	
 	la $t2 maxIter
 	lw $t5 0($t2) #loads maxiIter
 	
 	#gets iteration numbers
-	#lw $s1 0($sp)
-	#addi $sp $sp 4	
-	#lw $s0 0($sp)
-	#addi $sp $sp 4	
-	
-	addi $s1 $s1 1
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
 	
 	
 	#if(maxIter < return value of iterate) goto setColor
@@ -218,6 +215,7 @@ setBlack:
 	add $t1 $t1 $t0
 	
 	sw $zero 0($t1)
+
 	j drawJulia_for_loop_1
 	
 	
@@ -252,19 +250,12 @@ setColor:
 	mult $t2 $t1
 	mflo $t1
 	add $t1 $t1 $t0
-	addi $t2 $t2 -2
 	
-	sw $v0 0($t1) #stores pixel data at address 
-	
-	move $a0 $t1
-	li $v0 1
-	syscall
-	jal printNewLine
+	sw $v0 0($t1) #stores pixel data at proper address 
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
 	#pops stack (including the parameters) and returns to previous function
-	addi $sp $sp 8
 	
 	lw $ra 0($sp)
 	addi $sp $sp 4	
