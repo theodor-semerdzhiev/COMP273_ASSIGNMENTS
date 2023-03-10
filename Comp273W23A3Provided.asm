@@ -115,21 +115,17 @@ drawMandelbrot:
 	
 	li $s0 -1 #row
 	li $s1 0 #col
-	mov.s $f20 $f12 #saves first parameters to $f20 save register
-	mov.s $f21 $f13 #saves first parameters to $f21 save register
 	
-
 	j drawMandelbrot_for_loop_1
 	
 drawMandelbrot_for_loop_1: 
 		
-	
 	la $t1 resolution
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
 
+	#prevents address out of range error somehow, DONT TOUCH THIS
 	addi $t3 $t3 -1
-	#addi $t2 $t2 1
 	#checks exit conditions
 	beq $s0 $t3 drawMandelbrot_for_loop_1_exit
 	bgt $s1 $t2 reset$s1_mandelbrot
@@ -142,23 +138,11 @@ drawMandelbrot_for_loop_1:
 	addi $sp $sp -4
 	sw $s1, 0($sp)
 	
-	#stores parameters to stack
-	addi $sp $sp -4
-	swc1 $f20, 0($sp)
-	addi $sp $sp -4
-	swc1 $f21, 0($sp)
-	
 	#runs pixel2ComplexInWindow
 	move $a0 $s1
 	move $a1 $s0
 	
 	jal pixel2ComplexInWindow
-	
-	#gets parameters saved in stack
-	lwc1 $f21 0($sp)
-	addi $sp $sp 4	
-	lwc1 $f20 0($sp)
-	addi $sp $sp 4	
 	
 	#runs iterate, setting all the parameters first
 	la $t1 maxIter
@@ -171,22 +155,7 @@ drawMandelbrot_for_loop_1:
 	mov.s $f14 $f0 
 	mov.s $f15 $f1
 	
-
-
-	#saves parameters back to the stack before calling iterate
-	addi $sp $sp -4
-	swc1 $f20, 0($sp)
-	addi $sp $sp -4
-	swc1 $f21, 0($sp)
-	
 	jal iterate
-	
-	#loads paramters frim the stack, again
-	lwc1 $f21 0($sp)
-	addi $sp $sp 4	
-	lwc1 $f20 0($sp)
-	addi $sp $sp 4	
-	
 	
 	la $t2 maxIter
 	lw $t5 0($t2) #loads maxiIter
@@ -208,7 +177,6 @@ reset$s1_mandelbrot:
 	addi $s0 $s0 1
 	
 	j drawMandelbrot_for_loop_1
-	
 	
 #sets the color to 0 (black) if number does not diverge	
 setBlack_mandelbrot:
