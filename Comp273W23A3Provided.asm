@@ -3,7 +3,7 @@
 # STUDENT NUMBER: 261118892
 .data
 bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
-resolution: .word  512 256    # width and height of the bitmap display
+resolution: .word  128 128    # width and height of the bitmap display
 
 windowlrbt: 
 .float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
@@ -70,15 +70,6 @@ newline_char: .asciiz "\n"
 	l.s $f15 4($t0)
 	
 	jal iterate
-	
-	#prints out the return value of iterateVerbose
-	#move $a0 $v0
-	#li $v0 1
-	#syscall
-	
-	#li $v0 10
-	#syscall
-	
 
 	##tester for the print2ComplexInWindow function
 	li $a0 0
@@ -94,7 +85,7 @@ newline_char: .asciiz "\n"
 	#li $v0 10
 	#syscall
 	
-	la $t0, JuliaC1
+	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	jal drawJulia
@@ -115,73 +106,94 @@ drawJulia:
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $t6 0 #row
-	li $t7 0 #col
-	mov.s $f20 $f12 #TODO save $f20 to stack
-	mov.s $f21 $f13 #TODO save $f21 to stack
-	
-	#stores parameters into the stack
-	addi $sp $sp -4
-	swc1 $f12, 0($sp)
-	addi $sp $sp -4
-	swc1 $f13, 0($sp)
+	li $s0 0 #row
+	li $s1 0 #col
+	mov.s $f20 $f12 #saves first parameters to $f20 
+	mov.s $f21 $f13 #saves first parameters to $f21
 	
 	j drawJulia_for_loop_1
 	
 drawJulia_for_loop_1: 
-	#WRITE CODE	
+		
 	la $t1 resolution
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
+
+	#subi $t3 $t3 -1
 	
+	#checks exit conditions
+	bgt $s0 $t3 drawJulia_for_loop_1_exit
+	bgt $s1 $t2 reset$t1
 	
-	bgt $t6 $t3 drawJulia_for_loop_1_exit
-	bgt $t7 $t2 reset$t1
+
 	
-	#saves iteration numbers
+	#saves iteration numbers to stack
 	addi $sp $sp -4
-	sw $t6, 0($sp)
+	sw $s0, 0($sp)
 	addi $sp $sp -4
-	sw $t7, 0($sp)
+	sw $s1, 0($sp)
+	
+	#stores parameters to stack
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
 	
 	#runs pixel2ComplexInWindow
-	move $a0 $t7
-	move $a1 $t6
+	move $a0 $s1
+	move $a1 $s0
 	jal pixel2ComplexInWindow
 	
-	#runs iterate, setting all the parameters
+	#gets parameters saved in stack
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
+	
+	#runs iterate, setting all the parameters first
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	move $a0 $t5
-	mov.s $f14 $f0
-	mov.s $f15 $f1
 	mov.s $f12 $f20
 	mov.s $f13 $f21
+	mov.s $f14 $f0
+	mov.s $f15 $f1
+
 	
-	#l.s $f12 -8($sp)
-	#l.s $f13 -12($sp)
+	#saves parameters back to the stack before calling iterate
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
+	
 	jal iterate
+	
+	#loads paramters frim the stack, again
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
 	
 	la $t2 maxIter
 	lw $t5 0($t2) #loads maxiIter
 	
 	#gets iteration numbers
-	lw $t7 0($sp)
+	lw $s1 0($sp)
 	addi $sp $sp 4	
-	lw $t6 0($sp)
+	lw $s0 0($sp)
 	addi $sp $sp 4	
 	
-	addi $t7 $t7 1
+	addi $s1 $s1 1
 	
+	
+	#if(maxIter < return value of iterate) goto setColor
 	bgt $t5 $v0 setColor
 	
 	j setBlack
 	
-	#j drawJulia_for_loop_1
-	
 reset$t1:
-	li $t7 0
-	addi $t6 $t6 1
+	li $s1 0
+	addi $s0 $s0 1
 	
 	j drawJulia_for_loop_1
 	
@@ -194,9 +206,10 @@ setBlack:
 	lw $t3 4($t1) # stores width in $t3
 	la $t0 bitmapDisplay
 	
-	mult $t2 $t6
+	#computes memory location for pixel 
+	mult $t2 $s0
 	mflo $t1
-	add $t1 $t1 $t7
+	add $t1 $t1 $s1
 	li $t2 4
 	mult $t2 $t1
 	mflo $t1
@@ -209,18 +222,18 @@ setBlack:
 #sets the colot to thee return of computeColor if number does diverge 
 setColor:
 	move $a0 $v0
-	#saves iteration count registers
+	#saves iteration count registers before calling computeColour
 	addi $sp $sp -4
-	sw $t6, 0($sp)
+	sw $s0, 0($sp)
 	addi $sp $sp -4
-	sw $t7, 0($sp)
+	sw $s1, 0($sp)
 	
 	jal computeColour
 	
 	#gets iteration count registers
-	lw $t7 0($sp)
+	lw $s1 0($sp)
 	addi $sp $sp 4	
-	lw $t6 0($sp)
+	lw $s0 0($sp)
 	addi $sp $sp 4	
 	
 	#computes pixel address, stores it in $t1
@@ -229,22 +242,22 @@ setColor:
 	lw $t3 4($t1) # stores width in $t3
 	la $t0 bitmapDisplay
 	
-	mult $t2 $t6
+	#computes pixel address, stores it in $t1
+	mult $t2 $s0
 	mflo $t1
-	add $t1 $t1 $t7
+	add $t1 $t1 $s1
 	li $t2 4
 	mult $t2 $t1
 	mflo $t1
 	add $t1 $t1 $t0
 	
-	sw $v0 0($t1)
+	sw $v0 0($t1) #stores pixel data at address ($t1)
 			
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
-	#pops stack (including the parameters) and returs to previous function
-	addi $sp $sp 4	
-	addi $sp $sp 4	
+	#pops stack (including the parameters) and returns to previous function
+	#addi $sp $sp 8
 	
 	lw $ra 0($sp)
 	addi $sp $sp 4	
@@ -371,10 +384,6 @@ iterateVerbose:
 	l.s $f10 bound #$f10 will containt the bound
 	mov.s $f4 $f12 #stores a into $f4
  	mov.s $f5 $f13 #stores b into $f5
-	
-	#sets initial parameters for the printComplex function
-	#mov.s $f12 $f14
-	#mov.s $f13 $f15
 	
 	j while_loop_for_verbose
 
