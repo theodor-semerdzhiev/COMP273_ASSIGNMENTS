@@ -6,13 +6,13 @@ bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
 
 windowlrbt: 
-.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
+#.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
 #.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
-#.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
+.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
 #.float -1.019741354 -1.013877846  -0.325120847 -0.322189093 	# baby Mandelbrot
  
 bound: .float 100	# bound for testing for unbounded growth during iteration
-maxIter: .word 16	# maximum iteration count to be used by drawJulia and drawMandelbrot
+maxIter: .word 512	# maximum iteration count to be used by drawJulia and drawMandelbrot
 scale: .word 16	# scale parameter used by computeColour
 
 # Julia constants for testing, or likewise for more examples see
@@ -21,6 +21,7 @@ JuliaC0:  .float 0    0    # should give you a circle, a good test, though borin
 JuliaC1:  .float 0.25 0.5 
 JuliaC2:  .float 0    0.7 
 JuliaC3:  .float 0    0.8 
+JuliaC4: .float 0.285 0.01
 
 # a demo starting point for iteration tests
 z0: .float  0 0
@@ -85,17 +86,194 @@ newline_char: .asciiz "\n"
 	#li $v0 10
 	#syscall
 	
-	la $t0, JuliaC3
+	#la $t0, JuliaC3
+	#l.s $f12 ($t0)
+	#l.s $f13 4($t0)
+	#jal drawJulia
+	
+	
+	la $t0, JuliaC4
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
-	jal drawJulia
-	
+	jal drawMandelbrot
+	#jal drawJulia
 	li $v0 10
 	syscall
 
 
 
 # TODO: Write your functions to implement various assignment objectives here
+################################################################################
+
+drawMandelbrot:
+	#add to stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+
+	la $t1 maxIter
+	lw $t5 0($t1) #loads n into $t5
+	
+	li $s0 -1 #row
+	li $s1 0 #col
+	mov.s $f20 $f12 #saves first parameters to $f20 save register
+	mov.s $f21 $f13 #saves first parameters to $f21 save register
+	
+
+	j drawMandelbrot_for_loop_1
+	
+drawMandelbrot_for_loop_1: 
+		
+	
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
+
+	addi $t3 $t3 -1
+	#addi $t2 $t2 1
+	#checks exit conditions
+	beq $s0 $t3 drawMandelbrot_for_loop_1_exit
+	bgt $s1 $t2 reset$s1_mandelbrot
+	
+	addi $s1 $s1 1
+	
+	#saves iteration numbers to stack
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
+	
+	#stores parameters to stack
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
+	
+	#runs pixel2ComplexInWindow
+	move $a0 $s1
+	move $a1 $s0
+	
+	jal pixel2ComplexInWindow
+	
+	#gets parameters saved in stack
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
+	
+	#runs iterate, setting all the parameters first
+	la $t1 maxIter
+	lw $t5 0($t1) #loads n into $t5
+	
+	move $a0 $t5
+	
+	mov.s $f12 $f0
+	mov.s $f13 $f1
+	mov.s $f14 $f0 
+	mov.s $f15 $f1
+	
+
+
+	#saves parameters back to the stack before calling iterate
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
+	
+	jal iterate
+	
+	#loads paramters frim the stack, again
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4	
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4	
+	
+	
+	la $t2 maxIter
+	lw $t5 0($t2) #loads maxiIter
+	
+	#gets iteration numbers
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
+	
+	
+	#if(maxIter < return value of iterate) goto setColor
+	bgt $t5 $v0 setColor_mandelbrot
+	
+	beq $t5 $v0 setBlack_mandelbrot
+	
+reset$s1_mandelbrot:
+	li $s1 0
+	addi $s0 $s0 1
+	
+	j drawMandelbrot_for_loop_1
+	
+	
+#sets the color to 0 (black) if number does not diverge	
+setBlack_mandelbrot:
+	#computes pixel address, stores it in $t1
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
+	la $t0 bitmapDisplay
+	
+	#computes memory location for pixel 
+	mult $t2 $s0
+	mflo $t1
+	add $t1 $t1 $s1
+	li $t2 4
+	mult $t2 $t1
+	mflo $t1
+	add $t1 $t1 $t0
+	
+	sw $zero 0($t1)
+
+	j drawMandelbrot_for_loop_1
+	
+	
+#sets the colot to thee return of computeColor if number does diverge 
+setColor_mandelbrot:
+	move $a0 $v0
+	#saves iteration count registers before calling computeColour
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
+	
+	jal computeColour
+	
+	#gets iteration count registers
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
+	
+	#computes pixel address, stores it in $t1
+	la $t1 resolution
+	lw $t2 0($t1) # stores height in $t2
+	lw $t3 4($t1) # stores width in $t3
+	la $t0 bitmapDisplay
+	
+	#computes pixel address, stores it in $t1
+	mult $t2 $s0
+	mflo $t1
+	add $t1 $t1 $s1
+	li $t2 4
+	mult $t2 $t1
+	mflo $t1
+	add $t1 $t1 $t0
+	
+	sw $v0 0($t1) #stores pixel data at proper address 
+	j drawMandelbrot_for_loop_1
+
+drawMandelbrot_for_loop_1_exit:
+	#pops stack (including the parameters) and returns to previous function
+	
+	lw $ra 0($sp)
+	addi $sp $sp 4	
+	jr $ra
+
 
 ################################################################################
 drawJulia:
