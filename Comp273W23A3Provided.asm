@@ -6,13 +6,13 @@ bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
 
 windowlrbt: 
-.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
-#.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
+#.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
+.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
 #.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
 #.float -1.019741354 -1.013877846  -0.325120847 -0.322189093 	# baby Mandelbrot
  
 bound: .float 100	# bound for testing for unbounded growth during iteration
-maxIter: .word 512	# maximum iteration count to be used by drawJulia and drawMandelbrot
+maxIter: .word 256	# maximum iteration count to be used by drawJulia and drawMandelbrot
 scale: .word 16	# scale parameter used by computeColour
 
 # Julia constants for testing, or likewise for more examples see
@@ -95,11 +95,11 @@ newline_char: .asciiz "\n"
 	#jal drawJulia
 	
 	
-	la $t0, JuliaC4
+	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
-	#jal drawMandelbrot
-	jal drawJulia
+	jal drawMandelbrot
+	#jal drawJulia
 	li $v0 10
 	syscall
 
