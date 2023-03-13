@@ -6,9 +6,9 @@ bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
 
 windowlrbt: 
-#.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
+.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
 #.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
-.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
+#.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
 #.float -1.019741354 -1.013877846  -0.325120847 -0.322189093 	# baby Mandelbrot
  
 bound: .float 100	# bound for testing for unbounded growth during iteration
@@ -41,17 +41,20 @@ newline_char: .asciiz "\n"
 	# TODO: Write your function testing code here
 	
 	
-	
+	li $a0 10
 	la $t0, JuliaC1
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
 	
-	la $t0, JuliaC2
+	la $t0, test_num
 	l.s $f14 ($t0)
 	l.s $f15 4($t0)
 	
 		
-	jal multComplex
+	jal iterateVerbose
+	
+	#li $v0 10
+	#syscall
 	
 	mov.s $f12 $f0
 	mov.s $f13 $f1
@@ -95,8 +98,8 @@ newline_char: .asciiz "\n"
 	la $t0, JuliaC4
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
-	jal drawMandelbrot
-	#jal drawJulia
+	#jal drawMandelbrot
+	jal drawJulia
 	li $v0 10
 	syscall
 
@@ -470,102 +473,172 @@ iterate:
 	addi $sp $sp -4
 	sw $ra, 0($sp)
 
-	li $t0 0 #set intial value of interation count
-	#move $t1 $a0 #store are max interation count
-	l.s $f10 bound #$f10 will containt the bound
-	mov.s $f4 $f12 #stores a into $f4
- 	mov.s $f5 $f13 #stores b into $f5
+	li $s0 0 #set intial value of interation count
+	move $s1 $a0 #store are max interation count
 	
-	#sets initial parameters for the printComplex function
-	#mov.s $f12 $f14
-	#mov.s $f13 $f15
+	mov.s $f20 $f12 #stores a into $f4
+ 	mov.s $f21 $f13 #stores b into $f5
 	
 	j while_loop_for_iterate
 
 while_loop_for_iterate:
 	
-	bge $t0 $a0 end_loop_for_iterate# if iteraton count > bound { break; }
+	
+	bge $s0 $s1 end_loop_for_iterate # if iteraton count > bound { break; }
+	
 	mul.s $f6 $f14 $f14 #computes x0^2 
 	mul.s $f7 $f15 $f15 #computes y0^2
 	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
 	
+	l.s $f10 bound #$f10 will containt the bound
 	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
 	bc1t end_loop_for_iterate #break
 	
-	#computes x0^2 - y0^2 + a 
-	sub.s $f8 $f6 $f7
-	add.s $f8 $f8 $f12
+	#saves a and b parameters to stack
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
 	
-	#computes 2 * x0 * y0 + b
-	mul.s $f9 $f14 $f15
-	l.s $f6 const_2 #loads constant 2
-	mul.s $f9 $f9 $f6
-	add.s $f9 $f9 $f13
+	#sets the parameters for the 
+	move $a0 $s1
+	mov.s $f12 $f14
+	mov.s $f13 $f15
+	mov.s $f14 $f14
+	mov.s $f15 $f15
 	
-	# updates $f14 and $f15 for the next iteration
-	mov.s $f14 $f8
-	mov.s $f15 $f9
+	#loads max iteration ($s1) and iteration count ($s0) into stack
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
+	
+	jal multComplex
+	
+	#loads max iteration ($s1) and iteration count ($s0) from stack
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
+	
+	add.s $f0 $f0 $f20
+	add.s $f1 $f1 $f21
+	
+	#loads a and b parameters into $f20 and $f21 from the stack
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4
+	
+	#loads results into $f14 $f15 for next iteration
+	mov.s $f14 $f0
+	mov.s $f15 $f1
 	
 	#increment interation count register
-	addi $t0 $t0 1
+	addi $s0 $s0 1
+	
 	j while_loop_for_iterate
 		
-end_loop_for_iterate:
+end_loop_for_iterate:  
 	#pop stack
 	lw $ra 0($sp)
 	addi $sp $sp 4	
 	#update return register
-	move $v0 $t0
+	move $v0 $s0
 	jr $ra
 
-###############################################
+
+###################################################
 
 iterateVerbose:
 	#adds to the stack
 	addi $sp $sp -4
 	sw $ra, 0($sp)
 
-	li $t0 0 #set intial value of interation count
-	move $t1 $a0 #store are max interation count
-	l.s $f10 bound #$f10 will containt the bound
-	mov.s $f4 $f12 #stores a into $f4
- 	mov.s $f5 $f13 #stores b into $f5
+	li $s0 0 #set intial value of interation count
+	move $s1 $a0 #store are max interation count
+	
+	mov.s $f20 $f12 #stores a into $f4
+ 	mov.s $f21 $f13 #stores b into $f5
 	
 	j while_loop_for_verbose
 
 while_loop_for_verbose:
 	
-	bge $t0 $t1 end_loop_for_verbose # if iteraton count > bound { break; }
+	
+	bge $s0 $s1 end_loop_for_verbose # if iteraton count > bound { break; }
+	
 	mul.s $f6 $f14 $f14 #computes x0^2 
 	mul.s $f7 $f15 $f15 #computes y0^2
 	add.s $f8 $f6 $f7 #computes x0^2 + y0^2
 	
+	l.s $f10 bound #$f10 will containt the bound
 	c.lt.s $f10 $f8 #if (x0^2 + y0^2 > bound) 
 	bc1t end_loop_for_verbose #break
+	
+	#saves a and b parameters to stack
+	addi $sp $sp -4
+	swc1 $f20, 0($sp)
+	addi $sp $sp -4
+	swc1 $f21, 0($sp)
 	
 	#sets parameters for the printComplex function
 	mov.s $f12 $f14 
 	mov.s $f13 $f15
 	
+	#saves max iteration ($s1) and iteration count ($s0) into stack
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
+	
+	#prints complex numbers
 	jal printComplex
 	jal printNewLine
 	
-	#computes x0^2 - y0^2 + a 
-	sub.s $f8 $f6 $f7
-	add.s $f8 $f8 $f4
+	#loads max iteration ($s1) and iteration count ($s0) from stack
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
 	
-	#computes 2 * x0 * y0 + b
-	mul.s $f9 $f14 $f15
-	l.s $f6 const_2 #loads constant 2
-	mul.s $f9 $f9 $f6
-	add.s $f9 $f9 $f5
+	#sets the parameters for the 
+	move $a0 $s1
+	mov.s $f12 $f14
+	mov.s $f13 $f15
+	mov.s $f14 $f14
+	mov.s $f15 $f15
 	
-	# updates $f14 and $f15 for the next iteration
-	mov.s $f14 $f8
-	mov.s $f15 $f9
+	#loads max iteration ($s1) and iteration count ($s0) into stack
+	addi $sp $sp -4
+	sw $s0, 0($sp)
+	addi $sp $sp -4
+	sw $s1, 0($sp)
+	
+	jal multComplex
+	
+	#loads max iteration ($s1) and iteration count ($s0) from stack
+	lw $s1 0($sp)
+	addi $sp $sp 4	
+	lw $s0 0($sp)
+	addi $sp $sp 4	
+	
+	add.s $f0 $f0 $f20
+	add.s $f1 $f1 $f21
+	
+	#loads a and b parameters into $f20 and $f21 from the stack
+	lwc1 $f21 0($sp)
+	addi $sp $sp 4
+	lwc1 $f20 0($sp)
+	addi $sp $sp 4
+	
+	#loads results into $f14 $f15 for next iteration
+	mov.s $f14 $f0
+	mov.s $f15 $f1
 	
 	#increment interation count register
-	addi $t0 $t0 1
+	addi $s0 $s0 1
+	
 	j while_loop_for_verbose
 		
 end_loop_for_verbose:  
@@ -573,10 +646,10 @@ end_loop_for_verbose:
 	lw $ra 0($sp)
 	addi $sp $sp 4	
 	#update return register
-	move $v0 $t0
+	move $v0 $s0
 	jr $ra
 
-###################################################
+#########################################################################
 
 #Computes the multiplication of compelx numbers i.e (a + bi)(c + di)
 # arguments a: $f12, b: $f13, c: $f14, d: $f15
