@@ -21,7 +21,7 @@ JuliaC0:  .float 0    0    # should give you a circle, a good test, though borin
 JuliaC1:  .float 0.25 0.5 
 JuliaC2:  .float 0    0.7 
 JuliaC3:  .float 0    0.8 
-JuliaC4: .float 0.285 0.01
+JuliaC4:  .float 0.285 0.01
 
 # a demo starting point for iteration tests
 z0: .float  0 0
@@ -31,6 +31,9 @@ z0: .float  0 0
 
 q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
+verbose_x: .asciiz "x"
+verbose_y: .asciiz "y"
+verbose_i_equal: .asciiz " i = "
 const_2: .float 2
 const_4: .float 4
 test_num: .float 1 0
@@ -47,14 +50,14 @@ newline_char: .asciiz "\n"
 	l.s $f13 4($t0)
 	
 	la $t0, test_num
-	l.s $f14 ($t0)
+	l.s $f14 4($t0)
 	l.s $f15 4($t0)
 	
 		
 	jal iterateVerbose
 	
-	#li $v0 10
-	#syscall
+	li $v0 10
+	syscall
 	
 	mov.s $f12 $f0
 	mov.s $f13 $f1
@@ -593,6 +596,8 @@ while_loop_for_verbose:
 	sw $s1, 0($sp)
 	
 	#prints complex numbers
+	move $a0 $s0
+	jal print_xy_label
 	jal printComplex
 	jal printNewLine
 	
@@ -641,6 +646,7 @@ while_loop_for_verbose:
 	
 	j while_loop_for_verbose
 		
+#this function prints the x[0-9] + y[0-9] i label
 end_loop_for_verbose:  
 	#pop stack
 	lw $ra 0($sp)
@@ -648,6 +654,57 @@ end_loop_for_verbose:
 	#update return register
 	move $v0 $s0
 	jr $ra
+	
+print_xy_label:
+	#adds to stack
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+	
+	#stores input $a0 into temp reg $t0
+	move $t0 $a0
+	
+	#prints "x"
+	la $t1 verbose_x
+	li $v0 4
+	move $a0 $t1
+	syscall
+	
+	#prints iteration number
+	li $v0 1
+	move $a0 $t0
+	syscall
+	
+	#prints " + "
+	la $t1 q1_printComplex1
+	li $v0 4
+	move $a0 $t1
+	syscall
+	
+	#Prints "y"
+	la $t1 verbose_y
+	li $v0 4
+	move $a0 $t1
+	syscall
+	
+	#prints iteration number
+	li $v0 1
+	move $a0 $t0
+	syscall
+	
+	#Prints " i = "
+	la $t1 verbose_i_equal
+	li $v0 4
+	move $a0 $t1
+	syscall
+	
+	#pops stack
+	lw $ra 0($sp)
+	addi $sp $sp 4	
+	
+	jr $ra
+	
+	
+
 
 #########################################################################
 
