@@ -6,13 +6,13 @@ bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
 
 windowlrbt: 
-#.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
-.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
+.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
+#.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
 #.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
 #.float -1.019741354 -1.013877846  -0.325120847 -0.322189093 	# baby Mandelbrot
  
 bound: .float 100	# bound for testing for unbounded growth during iteration
-maxIter: .word 256	# maximum iteration count to be used by drawJulia and drawMandelbrot
+maxIter: .word 100	# maximum iteration count to be used by drawJulia and drawMandelbrot
 scale: .word 16	# scale parameter used by computeColour
 
 # Julia constants for testing, or likewise for more examples see
@@ -43,66 +43,14 @@ newline_char: .asciiz "\n"
 	
 	# TODO: Write your function testing code here
 	
-	
-	li $a0 10
-	la $t0, JuliaC1
-	l.s $f12 ($t0)
-	l.s $f13 4($t0)
-	
-	la $t0, test_num
-	l.s $f14 4($t0)
-	l.s $f15 4($t0)
-	
-		
-	jal iterateVerbose
-	
-	li $v0 10
-	syscall
-	
-	mov.s $f12 $f0
-	mov.s $f13 $f1
-	
-	jal printComplex
-	jal printNewLine
-	jal printNewLine
-	
-	
-	## tests iterateVerbose
-	li $a0 10
-	la $t0, JuliaC0
-	l.s $f12 ($t0)
-	l.s $f13 4($t0)
-	la $t0, test_num
-	l.s $f14 ($t0)
-	l.s $f15 4($t0)
-	
-	jal iterate
-
-	##tester for the print2ComplexInWindow function
-	li $a0 0
-	li $a1 0
-	
-	jal pixel2ComplexInWindow
-	
-	mov.s $f12 $f0
-	mov.s $f13 $f1
-	jal printNewLine
-	jal printComplex
-	
-	#li $v0 10
-	#syscall
-	
-	#la $t0, JuliaC3
-	#l.s $f12 ($t0)
-	#l.s $f13 4($t0)
-	#jal drawJulia
-	
+	#this is simple tester code that will test the Julia and Mandelbrot tests, MAKE SURE THE PROPER CONSTANTS ARE SETUP FOR YOU SEE TO SOMETHING ON THE SCREEN!!!
+	#Enjoy :)
 	
 	la $t0, JuliaC0
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
-	jal drawMandelbrot
-	#jal drawJulia
+	#jal drawMandelbrot
+	jal drawJulia
 	li $v0 10
 	syscall
 
@@ -119,7 +67,7 @@ drawMandelbrot:
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $s0 -1 #row
+	li $s0 0 #row
 	li $s1 0 #col
 	
 	j drawMandelbrot_for_loop_1
@@ -130,13 +78,10 @@ drawMandelbrot_for_loop_1:
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
 
-	#prevents address out of range error somehow, DONT TOUCH THIS
-	addi $t3 $t3 -1
+	
 	#checks exit conditions
 	beq $s0 $t3 drawMandelbrot_for_loop_1_exit
-	bgt $s1 $t2 reset$s1_mandelbrot
-	
-	addi $s1 $s1 1
+	bge $s1 $t2 reset$s1_mandelbrot
 	
 	#saves iteration numbers to stack
 	addi $sp $sp -4
@@ -144,23 +89,21 @@ drawMandelbrot_for_loop_1:
 	addi $sp $sp -4
 	sw $s1, 0($sp)
 	
-	#runs pixel2ComplexInWindow
+	#sets parameters and runs pixel2ComplexInWindow
 	move $a0 $s1
 	move $a1 $s0
-	
 	jal pixel2ComplexInWindow
 	
 	#runs iterate, setting all the parameters first
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
+	#sets parameters and calls iterate
 	move $a0 $t5
-	
 	mov.s $f12 $f0
 	mov.s $f13 $f1
 	mov.s $f14 $f0 
-	mov.s $f15 $f1
-	
+	mov.s $f15 $f1	
 	jal iterate
 	
 	la $t2 maxIter
@@ -176,6 +119,7 @@ drawMandelbrot_for_loop_1:
 	#if(maxIter < return value of iterate) goto setColor
 	bgt $t5 $v0 setColor_mandelbrot
 	
+	#otherwise if(maxIter == return value of iterate) (row,column) in mandelbrot set, therefor set color to black
 	beq $t5 $v0 setBlack_mandelbrot
 	
 reset$s1_mandelbrot:
@@ -203,6 +147,8 @@ setBlack_mandelbrot:
 	
 	sw $zero 0($t1)
 
+	#increments iteration number
+	addi $s1 $s1 1
 	j drawMandelbrot_for_loop_1
 	
 	
@@ -239,6 +185,10 @@ setColor_mandelbrot:
 	add $t1 $t1 $t0
 	
 	sw $v0 0($t1) #stores pixel data at proper address 
+	
+	#increments iteration number
+	addi $s1 $s1 1
+	
 	j drawMandelbrot_for_loop_1
 
 drawMandelbrot_for_loop_1_exit:
@@ -258,7 +208,7 @@ drawJulia:
 	la $t1 maxIter
 	lw $t5 0($t1) #loads n into $t5
 	
-	li $s0 -1 #row
+	li $s0 0 #row
 	li $s1 0 #col
 	mov.s $f20 $f12 #saves first parameters to $f20 save register
 	mov.s $f21 $f13 #saves first parameters to $f21 save register
@@ -268,18 +218,14 @@ drawJulia:
 	
 drawJulia_for_loop_1: 
 		
-	
 	la $t1 resolution
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
-
-	addi $t3 $t3 -1
-	#addi $t2 $t2 1
+	
 	#checks exit conditions
 	beq $s0 $t3 drawJulia_for_loop_1_exit
-	bgt $s1 $t2 reset$s1
+	bge $s1 $t2 reset$s1
 	
-	addi $s1 $s1 1
 	
 	#saves iteration numbers to stack
 	addi $sp $sp -4
@@ -336,13 +282,14 @@ drawJulia_for_loop_1:
 	lw $s0 0($sp)
 	addi $sp $sp 4	
 	
-	
 	#if(maxIter < return value of iterate) goto setColor
 	bgt $t5 $v0 setColor
 	
+	#otherwise if(maxIter == return value of iterate) (row,column) in Julia set, therefor set color to black
 	beq $t5 $v0 setBlack
 	
 reset$s1:
+	#sets inner loop iteration number to 0 and increments outer iteration number by 1 before starting inner loop again
 	li $s1 0
 	addi $s0 $s0 1
 	
@@ -351,11 +298,10 @@ reset$s1:
 	
 #sets the color to 0 (black) if number does not diverge	
 setBlack:
-	#computes pixel address, stores it in $t1
 	la $t1 resolution
 	lw $t2 0($t1) # stores height in $t2
 	lw $t3 4($t1) # stores width in $t3
-	la $t0 bitmapDisplay
+	la $t0 bitmapDisplay 
 	
 	#computes memory location for pixel 
 	mult $t2 $s0
@@ -368,6 +314,9 @@ setBlack:
 	
 	sw $zero 0($t1)
 
+	#increments iteration count
+	addi $s1 $s1 1
+	
 	j drawJulia_for_loop_1
 	
 	
@@ -404,6 +353,10 @@ setColor:
 	add $t1 $t1 $t0
 	
 	sw $v0 0($t1) #stores pixel data at proper address 
+	
+	#increments iteration count
+	addi $s1 $s1 1
+	
 	j drawJulia_for_loop_1
 
 drawJulia_for_loop_1_exit:
@@ -646,7 +599,7 @@ while_loop_for_verbose:
 	
 	j while_loop_for_verbose
 		
-#this function prints the x[0-9] + y[0-9] i label
+#exit label for iterateVerbose
 end_loop_for_verbose:  
 	#pop stack
 	lw $ra 0($sp)
@@ -655,6 +608,7 @@ end_loop_for_verbose:
 	move $v0 $s0
 	jr $ra
 	
+#this function prints the x[0-9] + y[0-9] i label
 print_xy_label:
 	#adds to stack
 	addi $sp $sp -4
@@ -702,8 +656,6 @@ print_xy_label:
 	addi $sp $sp 4	
 	
 	jr $ra
-	
-	
 
 
 #########################################################################
