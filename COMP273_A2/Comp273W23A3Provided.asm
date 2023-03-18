@@ -6,8 +6,8 @@ bitmapDisplay: .space 0x80000 # enough memory for a 512x256 bitmap display
 resolution: .word  512 256    # width and height of the bitmap display
 
 windowlrbt: 
-.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
-#.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
+#.float -2.5 2.5 -1.25 1.25  					# good window for viewing Julia sets
+.float -3 2 -1.25 1.25  					# good window for viewing full Mandelbrot set
 #.float -0.807298 -0.799298 -0.179996 -0.175996 		# double spiral
 #.float -1.019741354 -1.013877846  -0.325120847 -0.322189093 	# baby Mandelbrot
  
@@ -27,7 +27,7 @@ JuliaC4:  .float 0.285 0.01
 z0: .float  0 0
 
 # TODO: define various constants you need in your .data segment here
-
+#DONT TOUCH THIS 
 
 q1_printComplex1: .asciiz " + "
 q1_printComplex2: .asciiz " i"
@@ -43,14 +43,15 @@ newline_char: .asciiz "\n"
 	
 	# TODO: Write your function testing code here
 	
-	#this is simple tester code that will test the Julia and Mandelbrot tests, MAKE SURE THE PROPER CONSTANTS ARE SETUP FOR YOU SEE TO SOMETHING ON THE SCREEN!!!
+	#this is simple tester code that will test the Julia and Mandelbrot tests, MAKE SURE THE PROPER CONSTANTS ARE SETUP IN THE .data SECTION 
+	#FOR YOU SEE TO SOMETHING ON THE SCREEN!!!
 	#Enjoy :)
 	
-	la $t0, JuliaC0
+	la $t0, JuliaC2
 	l.s $f12 ($t0)
 	l.s $f13 4($t0)
-	#jal drawMandelbrot
-	jal drawJulia
+	jal drawMandelbrot
+	#jal drawJulia
 	li $v0 10
 	syscall
 
@@ -657,7 +658,6 @@ print_xy_label:
 	
 	jr $ra
 
-
 #########################################################################
 
 #Computes the multiplication of compelx numbers i.e (a + bi)(c + di)
@@ -776,3 +776,7 @@ ccSkip2:
 ccSkip3:
  	addi $a0 $a0 -768
  	j ccLoop
+ 	
+ 	
+ 	
+ #this assignment was not worth my time and sanity :(
