@@ -6,7 +6,7 @@ displayBuffer:  .space 0x40000 # space for 512x256 bitmap display
 errorBuffer:    .space 0x40000 # space to store match function
 templateBuffer: .space 0x100   # space for 8x8 template
 imageFileName:    .asciiz "pxlcon512x256cropgs.raw" 
-templateFileName: .asciiz "template8x8gsLRtest.raw"
+templateFileName: .asciiz "template8x8gsLLtest.raw"
 # struct bufferInfo { int *buffer, int width, int height, char* filename }
 imageBufferInfo:    .word displayBuffer  512 128  imageFileName
 errorBufferInfo:    .word errorBuffer    512 128  0
