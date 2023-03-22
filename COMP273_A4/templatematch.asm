@@ -6,7 +6,7 @@ displayBuffer:  .space 0x40000 # space for 512x256 bitmap display
 errorBuffer:    .space 0x40000 # space to store match function
 templateBuffer: .space 0x100   # space for 8x8 template
 imageFileName:    .asciiz "pxlcon512x256cropgs.raw" 
-templateFileName: .asciiz "template8x8gsLLtest.raw"
+templateFileName: .asciiz "template8x8gsLRtest.raw"
 # struct bufferInfo { int *buffer, int width, int height, char* filename }
 imageBufferInfo:    .word displayBuffer  512 128  imageFileName
 errorBufferInfo:    .word errorBuffer    512 128  0
@@ -19,7 +19,7 @@ newline_char: .asciiz "\n"
 .text
 
 #jal matchTemplate
-jal main
+j main
 
 main:	la $a0, imageBufferInfo
 	jal loadImage
@@ -88,52 +88,58 @@ matchTemplate:
 					#IMPLEMENT CODE FOR SAD[x,y] += abs( I[x+i][y+j] - T[i][j] );
 					
 					#loads parameters for getImagePixel(struct imageBufferInfo *image, int row, int column)
-					sw $a0 imageBufferInfo
+					la $a0 imageBufferInfo
 					move $a1 $s1
 					add $a1 $a1 $s3
 					move $a2 $s0
 					add $a2 $a2 $s2
 					
-					jal getImagePixel # calls function
+					jal getPixelAddress # calls function
+					
+					
 					
 					#pushes the results to the stack
 					addi $sp $sp -4
 					sw $v0, 0($sp)
 					
 					#loads parameters for the getTemplatePixel(struct templateBufferInfo *template, int row, int column)
-					sw $a0 imageBufferInfo
-					move $a1 $s2
-					move $a2 $s3
+					la $a0 templateBufferInfo
+					#li $v0 1
+					#syscall
+					move $a1 $s3
+					move $a2 $s2
 					
-					jal getTemplatePixel #calls function
+					jal getPixelAddress #calls function
 					
 					#gets the result of getImagePixel back from the stack
 					lw $t0 0($sp)
 					addi $sp $sp 4
-					
-					
+						
 					#computes the diffrence 
 					lbu $t1 ($t0) #loads image intensity into $t1
 					lbu $t0 ($v0) #loads template intensity into $t0
 					sub $t1 $t1 $t0 #computes difference
 					abs $t1 $t1 #takes absolute value
-					#pushes the difference to the stack
-					addi $sp $sp -4
-					sw $t1, 0($sp)
 					
 					
-					#loads the difference back from the stack
-					lw $t1, 0($sp)
-					addi $sp $sp 4
+					#adds the difference to the errorBuffer
+					la $a0 imageBufferInfo	
+					move $a1 $s1
+					move $a2 $s0
+					jal getPixelAddress
 					
-					la $t2 errorBufferInfo
-					lw $t0 0($t2)
-					add $t0 $t0 $t1
-					sw $t0 0($t2)
-						
+					
 					lw $t0 0($v0)
-					add $t1 $t1 $t0
-					sw $t1 0($v0) 
+					add $t0 $t0 $t1
+					sw $t0 0($v0)
+					
+					##############
+					#move $a0 $v0
+					#move $t9 $v0
+					#li $v0 1
+					#syscall
+					#move $v0 $t9
+					##############
 					
 					addi $s3 $s3 1
 					j loop4
@@ -164,11 +170,11 @@ matchTemplate:
 		jr $ra	
 	
 		
-#a0: contains address of ErrorBufferInfo
+#a0: contains the struct address
 #a1: contains the row (x+i)
 #a2: contains the column (y+j)
 #v0: return register containing the address of the pixel
-getErrorBufferPixel:
+getPixelAddress:
 	#pushes to stack
 	addi $sp $sp -4
 	sw $ra, 0($sp)
@@ -183,7 +189,9 @@ getErrorBufferPixel:
 	mult $v0 $t1 # 4(width * row + col)
 	mflo $v0 # loads it into $v0
 	
-	lw $t0 0($a0) # loads the address of the image
+	lw $t0 ($a0) # loads the address of the image
+	
+	
 	add $v0 $v0 $t0 # address + 4(width * row + col)
 	
 	#pops stack
@@ -191,62 +199,7 @@ getErrorBufferPixel:
 	addi $sp $sp 4
 	
 	jr $ra	
-#a0: contains address of ImageBufferInfo
-#a1: contains the row (x+i)
-#a2: contains the column (y+j)
-#v0: return register containing the address of the pixel
-getImagePixel:
-	#pushes to stack
-	addi $sp $sp -4
-	sw $ra, 0($sp)
 
-	lw $t0 4($a0) #loads the width of the Image
-	
-	#computes 4(width * row + col)
-	mult $t0 $a1 # width * row
-	mflo $v0 # loads width * row into $v0
-	add $v0 $v0 $a2 # width * row + col
-	li $t1 4
-	mult $v0 $t1 # 4(width * row + col)
-	mflo $v0 # loads it into $v0
-	
-	lw $t0 0($a0) # loads the address of the image
-	add $v0 $v0 $t0 # address + 4(width * row + col)
-	
-	#pops stack
-	lw $ra 0($sp)
-	addi $sp $sp 4
-	
-	jr $ra
-
-	
-#a0: contains address of TemplateBufferInfo
-#a1: contains the row (i)
-#a2: contains the column (j)	
-#v0: return register containing the address of the pixel
-getTemplatePixel:	
-	#pushes to stack
-	addi $sp $sp -4
-	sw $ra, 0($sp)
-
-	lw $t0 4($a0) #loads the width of the Template
-	
-	#computes 4(width * row + col)
-	mult $t0 $a1 # width * row
-	mflo $v0 # loads width * row into $v0
-	add $v0 $v0 $a2 # width * row + col
-	li $t1 4
-	mult $v0 $t1 # 4(width * row + col)
-	mflo $v0 # loads it into $v0
-	
-	lw $t0 0($a0) # loads the address of the image
-	add $v0 $v0 $t0 # address + 4(width * row + col)
-	
-	#pops stack
-	lw $ra 0($sp)
-	addi $sp $sp 4
-	
-	jr $ra
 	
 ##########################################################
 # matchTemplateFast( bufferInfo imageBufferInfo, bufferInfo templateBufferInfo, bufferInfo errorBufferInfo )
