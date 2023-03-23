@@ -6,7 +6,7 @@ displayBuffer:  .space 0x40000 # space for 512x256 bitmap display
 errorBuffer:    .space 0x40000 # space to store match function
 templateBuffer: .space 0x100   # space for 8x8 template
 imageFileName:    .asciiz "pxlcon512x256cropgs.raw" 
-templateFileName: .asciiz "template8x8gsLLtest.raw"
+templateFileName: .asciiz "template8x8gsWaldoMod.raw"
 # struct bufferInfo { int *buffer, int width, int height, char* filename }
 imageBufferInfo:    .word displayBuffer  512 128  imageFileName
 errorBufferInfo:    .word errorBuffer    512 128  0
@@ -19,7 +19,7 @@ newline_char: .asciiz "\n"
 .text
 
 #jal matchTemplate
-j main
+jal main
 
 main:	la $a0, imageBufferInfo
 	jal loadImage
@@ -28,7 +28,7 @@ main:	la $a0, imageBufferInfo
 	la $a0, imageBufferInfo
 	la $a1, templateBufferInfo
 	la $a2, errorBufferInfo
-	jal matchTemplate        # MATCHING DONE HERE
+	#jal matchTemplate        # MATCHING DONE HERE
 	la $a0, errorBufferInfo
 	jal findBest
 	la $a0, imageBufferInfo
