@@ -21,6 +21,23 @@ newline_char: .asciiz "\n"
 #jal matchTemplate
 jal main
 
+li $v0 10
+syscall
+
+la $a0 templateBufferInfo
+li $a1 0
+li $a2 0
+jal getPixelAddress
+
+move $a0 $v0
+li $v0 1
+syscall
+
+jal printNewLine
+
+li $v0 10
+syscall
+
 main:	la $a0, imageBufferInfo
 	jal loadImage
 	la $a0, templateBufferInfo
@@ -28,7 +45,7 @@ main:	la $a0, imageBufferInfo
 	la $a0, imageBufferInfo
 	la $a1, templateBufferInfo
 	la $a2, errorBufferInfo
-	#jal matchTemplate        # MATCHING DONE HERE
+	jal matchTemplate        # MATCHING DONE HERE
 	la $a0, errorBufferInfo
 	jal findBest
 	la $a0, imageBufferInfo
@@ -104,43 +121,43 @@ matchTemplate:
 					
 					#loads parameters for the getTemplatePixel(struct templateBufferInfo *template, int row, int column)
 					la $a0 templateBufferInfo
-					#li $v0 1
-					#syscall
 					move $a1 $s3
 					move $a2 $s2
 					
 					jal getPixelAddress #calls function
 					
+					
 					#gets the result of getImagePixel back from the stack
 					lw $t0 0($sp)
 					addi $sp $sp 4
 						
-					#computes the diffrence 
+					#computes the difference 
+					
 					lbu $t1 ($t0) #loads image intensity into $t1
-					lbu $t0 ($v0) #loads template intensity into $t0
-					sub $t1 $t1 $t0 #computes difference
+					lbu $t2 ($v0) #loads template intensity into $t0
+					sub $t1 $t1 $t2 #computes difference
 					abs $t1 $t1 #takes absolute value
 					
 					
+					
+					addi $sp $sp -4
+					sw $t1 0($sp)
+					
 					#adds the difference to the errorBuffer
-					la $a0 imageBufferInfo	
+					la $a0 errorBufferInfo	
 					move $a1 $s1
 					move $a2 $s0
 					jal getPixelAddress
 					
 					
+					lw $t1 0($sp)
+					addi $sp $sp 4
+					
 					lw $t0 0($v0)
 					add $t0 $t0 $t1
 					sw $t0 0($v0)
 					
-					##############
-					#move $a0 $v0
-					#move $t9 $v0
-					#li $v0 1
-					#syscall
-					#move $v0 $t9
-					##############
-					
+				
 					addi $s3 $s3 1
 					j loop4
 		
