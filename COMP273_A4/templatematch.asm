@@ -238,23 +238,74 @@ matchTemplateFast:
 	j loop1_fast
 		
 		loop1_fast:
+			# if j >= 8 goto loop1_fast_exit
+			bge $s0 8 loop1_fast_exit
 			
-		
+			la $s3 templateBufferInfo
+			lw $v1 0($s3)
+			addi $v1 $v1 $s0
+			
+			lbu $t0 0($v1)
+			
+			addi $v1 $v1 8
+			lbu $t1 0($v1)
+			
+			addi $v1 $v1 8
+			lbu $t2 0($v1)
+			
+			addi $v1 $v1 8
+			lbu $t3 0($v1)
+
+			addi $v1 $v1 8
+			lbu $t4 ($v1)
+			
+			addi $v1 $v1 8
+			lbu $t5 0($v1)
+
+			addi $v1 $v1 8
+			lbu $t6 0($v1)			
+			
+			addi $v1 $v1 8
+			lbu $t7 0($v1)
+			
+			j loop2_fast
+			
 			loop2_fast:
-			
+				#loads height if image
+				la $s3 imageBufferInfo
+				lw $t4 4($s3)
+				addi $s4 $s4 -8
+				# y > height - 8
+				bgt $s1 $s4 loop2_fast_exit
+				
+				j loop3_fast
+				
 				
 				loop3_fast:
-				
-				
-				
-				
-				loop3_fast_exit:	
+					la $s3 imageBufferInfo
+					lw $t4 4($s3)
+					addi $s4 $s4 -8
+					# x > width - 8
+					bgt $s2 $s4 loop3_fast_exit
 					
+					
+					
+					
+			
+					addi $s2 $s2 1
+					
+					j loop3_fast
+				
+				loop3_fast_exit:
+					
+					li $s2 0
+					addi $s1 $s1 1
 					j loop2_fast
 			
 				
 			loop2_fast_exit:
-				
+				li $s1 0
+				addi $s0 $s0 1
 				j loop1_fast
 		
 		loop1_fast_exit:
@@ -265,6 +316,37 @@ exit_matchTemplateFast:
 	lw $ra 0($sp)
 	addi $sp $sp 4
 	jr $ra	
+	
+#a0: x
+#a1: y
+#v0: returns the intensity at (x,y) pixel
+getTemplateIntensity:
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+	
+
+	
+	
+	
+	
+	
+	lw $ra 0($sp)
+	addi $sp $sp 4
+	
+#a0: x
+#a1: y
+#v0: returns the intensity at (x,y) pixel
+getImageIntensity:
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+	
+	
+	
+	
+	
+	
+	lw $ra 0($sp)
+	addi $sp $sp 4
 	
 	
 	
