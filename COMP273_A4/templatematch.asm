@@ -21,23 +21,6 @@ newline_char: .asciiz "\n"
 #jal matchTemplate
 j main
 
-li $v0 10
-syscall
-
-la $a0 templateBufferInfo
-li $a1 0
-li $a2 0
-jal getPixelAddress
-
-move $a0 $v0
-li $v0 1
-syscall
-
-jal printNewLine
-
-li $v0 10
-syscall
-
 main:	la $a0, imageBufferInfo
 	jal loadImage
 	la $a0, templateBufferInfo
@@ -45,7 +28,7 @@ main:	la $a0, imageBufferInfo
 	la $a0, imageBufferInfo
 	la $a1, templateBufferInfo
 	la $a2, errorBufferInfo
-	jal matchTemplate        # MATCHING DONE HERE
+	jal matchTemplateFast        # MATCHING DONE HERE
 	la $a0, errorBufferInfo
 	jal findBest
 	la $a0, imageBufferInfo
@@ -234,65 +217,165 @@ matchTemplateFast:
 	li $s0 0
 	li $s1 0
 	li $s2 0
-
+	
 	j loop1_fast
 		
 		loop1_fast:
 			# if j >= 8 goto loop1_fast_exit
 			bge $s0 8 loop1_fast_exit
 			
+			
 			la $s3 templateBufferInfo
 			lw $v1 0($s3)
-			addi $v1 $v1 $s0
+			
+			li $t0 8
+			mult $s0 $t0
+			mflo $t0
+			add $v1 $v1 $t0  
+			
 			
 			lbu $t0 0($v1)
 			
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t1 0($v1)
 			
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t2 0($v1)
 			
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t3 0($v1)
 
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t4 ($v1)
 			
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t5 0($v1)
 
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t6 0($v1)			
 			
-			addi $v1 $v1 8
+			addi $v1 $v1 4
 			lbu $t7 0($v1)
 			
+			sw $t0 	4($sp)
+			sw $t1 	8($sp)
+			sw $t2 	12($sp)
+			sw $t3 	16($sp)
+			sw $t4 	20($sp)
+			sw $t5 	24($sp)
+			sw $t6 	28($sp)
+			sw $t7	32($sp)
+			addi $sp $sp -32
+	
 			j loop2_fast
 			
 			loop2_fast:
 				#loads height if image
 				la $s3 imageBufferInfo
-				lw $t4 4($s3)
-				addi $s4 $s4 -8
+				lw $t4 8($s3)
+				addi $t4 $t4 -8
 				# y > height - 8
-				bgt $s1 $s4 loop2_fast_exit
+				bgt $s1 $t4 loop2_fast_exit
 				
 				j loop3_fast
 				
 				
 				loop3_fast:
-					la $s3 imageBufferInfo
+					
+				
 					lw $t4 4($s3)
-					addi $s4 $s4 -8
+					addi $t4 $t4 -8
 					# x > width - 8
-					bgt $s2 $s4 loop3_fast_exit
-					
-					
-					
-					
+					bgt $s2 $t4 loop3_fast_exit	
 			
+					#computes the memory address for SAD[X,Y]			
+					la $a0 errorBufferInfo	
+					move $a1 $s1
+					move $a2 $s2					
+					jal getPixelAddress #output is $v0
+							
+					#computes the offset (row) for the image
+					add $t0 $s0 $s1 #y+j
+					lw $t1 4($s3) # loads the width
+					mult $t0 $t1 # (y+j) * width
+					mflo $t0 
+					lw $t1 0($s3) # loads the imageBufferAddress
+					add $t0 $t0 $t1 #address + (y+j) * height
+					add $t0 $t0 $s2 #adds the +x offset
+					
+					##$t2 is gonna contain the sum of the difference
+					li $t2 0
+					
+					lbu $t1 0($t0)
+					lw $t7 -28($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -24($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -20($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -16($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -12($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					 
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -8($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 -4($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					addi $t0 $t0 4
+					
+					lbu $t1 0($t0)
+					lw $t7 0($sp)
+					sub $t1 $t1 $t7
+					abs $t1 $t1
+					add $t2 $t2 $t1
+					
+					
+					#adds the difference stored in $t2 to the errorBuffer
+					lw $t1 0($v0)
+					add $t1 $t1 $t2
+					sw $t2 0($v0)
+					
 					addi $s2 $s2 1
+					
 					
 					j loop3_fast
 				
@@ -306,16 +389,16 @@ matchTemplateFast:
 			loop2_fast_exit:
 				li $s1 0
 				addi $s0 $s0 1
+				addi $sp $sp 32
 				j loop1_fast
 		
 		loop1_fast_exit:
-		
-			j exit_matchTemplateFast
+			lw $ra 0($sp)
+			addi $sp $sp 4
+			jr $ra	
 	
 exit_matchTemplateFast:
-	lw $ra 0($sp)
-	addi $sp $sp 4
-	jr $ra	
+	
 	
 #a0: x
 #a1: y
