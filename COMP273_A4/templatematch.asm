@@ -6,7 +6,7 @@ displayBuffer:  .space 0x40000 # space for 512x256 bitmap display
 errorBuffer:    .space 0x40000 # space to store match function
 templateBuffer: .space 0x100   # space for 8x8 template
 imageFileName:    .asciiz "pxlcon512x256cropgs.raw" 
-templateFileName: .asciiz "template8x8gsWaldoMod.raw"
+templateFileName: .asciiz "template8x8gsLRtest.raw"
 # struct bufferInfo { int *buffer, int width, int height, char* filename }
 imageBufferInfo:    .word displayBuffer  512 128  imageFileName
 errorBufferInfo:    .word errorBuffer    512 128  0
@@ -19,7 +19,7 @@ newline_char: .asciiz "\n"
 .text
 
 #jal matchTemplate
-jal main
+j main
 
 li $v0 10
 syscall
@@ -82,7 +82,7 @@ matchTemplate:
 		lw $t1 8($t0)
 		addi $t1 $t1 -8
 		
-		bge $s0 $t1 loop1_exit
+		bgt $s0 $t1 loop1_exit
 		j loop2
 	
 ###############################	
@@ -91,25 +91,25 @@ matchTemplate:
 			lw $t1 4($t0)
 			addi $t1 $t1 -8
 			
-			bge $s1 $t1 loop2_exit
+			bgt $s1 $t1 loop2_exit
 			j loop3
 	############################################
 	
 			loop3:
-				bgt $s2 8 loop3_exit
+				bge $s2 7 loop3_exit
 				j loop4
 		
 		##################################################
 				loop4:
-					bgt $s3 8 loop4_exit
+					bge $s3 7 loop4_exit
 					#IMPLEMENT CODE FOR SAD[x,y] += abs( I[x+i][y+j] - T[i][j] );
 					
 					#loads parameters for getImagePixel(struct imageBufferInfo *image, int row, int column)
 					la $a0 imageBufferInfo
-					move $a1 $s1
-					add $a1 $a1 $s3
-					move $a2 $s0
-					add $a2 $a2 $s2
+					move $a1 $s0
+					add $a1 $a1 $s2
+					move $a2 $s1
+					add $a2 $a2 $s3
 					
 					jal getPixelAddress # calls function
 					
@@ -121,8 +121,8 @@ matchTemplate:
 					
 					#loads parameters for the getTemplatePixel(struct templateBufferInfo *template, int row, int column)
 					la $a0 templateBufferInfo
-					move $a1 $s3
-					move $a2 $s2
+					move $a1 $s2
+					move $a2 $s3
 					
 					jal getPixelAddress #calls function
 					
@@ -139,20 +139,21 @@ matchTemplate:
 					abs $t1 $t1 #takes absolute value
 					
 					
-					
+					#saves the difference to the stack
 					addi $sp $sp -4
 					sw $t1 0($sp)
 					
 					#adds the difference to the errorBuffer
 					la $a0 errorBufferInfo	
-					move $a1 $s1
-					move $a2 $s0
+					move $a1 $s0
+					move $a2 $s1					
 					jal getPixelAddress
 					
-					
+					#gets the difference from the stack
 					lw $t1 0($sp)
 					addi $sp $sp 4
 					
+					#adds the difference to SAD[X][Y]
 					lw $t0 0($v0)
 					add $t0 $t0 $t1
 					sw $t0 0($v0)
@@ -188,8 +189,8 @@ matchTemplate:
 	
 		
 #a0: contains the struct address
-#a1: contains the row (x+i)
-#a2: contains the column (y+j)
+#a1: contains the height 
+#a2: contains the width 
 #v0: return register containing the address of the pixel
 getPixelAddress:
 	#pushes to stack
@@ -225,6 +226,44 @@ matchTemplateFast:
 	
 	# TODO: write this function!
 	
+	#ADDS TO STACK
+	addi $sp $sp -4
+	sw $ra, 0($sp)
+	
+	#iteration numbers
+	li $s0 0
+	li $s1 0
+	li $s2 0
+
+	j loop1_fast
+		
+		loop1_fast:
+			
+		
+			loop2_fast:
+			
+				
+				loop3_fast:
+				
+				
+				
+				
+				loop3_fast_exit:	
+					
+					j loop2_fast
+			
+				
+			loop2_fast_exit:
+				
+				j loop1_fast
+		
+		loop1_fast_exit:
+		
+			j exit_matchTemplateFast
+	
+exit_matchTemplateFast:
+	lw $ra 0($sp)
+	addi $sp $sp 4
 	jr $ra	
 	
 	
