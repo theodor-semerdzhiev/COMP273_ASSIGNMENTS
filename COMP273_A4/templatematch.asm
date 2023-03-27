@@ -229,6 +229,17 @@ matchTemplateFast:
 			#The way the values are stored in memory, I can just increment the pointer by 4 8 times
 			#which will interate through '1' row of the template
 			
+			#computes the inital image address, taking into consideration the +y
+			lw $v0 0($a0) #stores the initial image buffer
+			#takes into account the +y offset 
+			lw $t0 4($a0)
+			mult $s0 $t0
+			mflo $t0
+			li $t1 4
+			mult $t0 $t1
+			mflo $t0
+			add $v0 $v0 $t0
+			
 			# computes the pixel Intensities
 			lbu $t0 0($v1)
 			lbu $t1 4($v1)
@@ -260,16 +271,7 @@ matchTemplateFast:
 			sw $t7	0($sp)
 			
 			lw $s3 0($a2) #stores the initial address of the error buffer
-			lw $v0 0($a0) #stores the initial image buffer
 			
-			#takes into account the +y offset 
-			lw $t0 4($a0)
-			mult $s0 $t0
-			mflo $t0
-			li $t1 4
-			mult $t0 $t1
-			mflo $t0
-			add $v0 $v0 $t0
 			
 			j loop2_fast
 			
