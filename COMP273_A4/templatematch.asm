@@ -231,22 +231,18 @@ matchTemplateFast:
 			
 			# computes the pixel Intensities
 			lbu $t0 0($v1)
-			addi $v1 $v1 4
-			lbu $t1 0($v1)
-			addi $v1 $v1 4
-			lbu $t2 0($v1)
-			addi $v1 $v1 4
-			lbu $t3 0($v1)
-			addi $v1 $v1 4
-			lbu $t4 ($v1)			
-			addi $v1 $v1 4
-			lbu $t5 0($v1)
-			addi $v1 $v1 4
-			lbu $t6 0($v1)						
-			addi $v1 $v1 4
-			lbu $t7 0($v1)
-			addi $sp $sp -4
+			lbu $t1 4($v1)
+			lbu $t2 8($v1)
+			lbu $t3 12($v1)
+			lbu $t4 16($v1)			
+			lbu $t5 20($v1)
+			lbu $t6 24($v1)						
+			lbu $t7 28($v1)
+			
+			addi $v1 $v1 32
+			
 			#saves them to the stack
+			addi $sp $sp -4
 			sw $t0 0($sp)
 			addi $sp $sp -4
 			sw $t1 0($sp)
@@ -264,6 +260,17 @@ matchTemplateFast:
 			sw $t7	0($sp)
 			
 			lw $s3 0($a2) #stores the initial address of the error buffer
+			lw $v0 0($a0) #stores the initial image buffer
+			
+			#takes into account the +y offset 
+			lw $t0 4($a0)
+			mult $s0 $t0
+			mflo $t0
+			li $t1 4
+			mult $t0 $t1
+			mflo $t0
+			add $v0 $v0 $t0
+			
 			j loop2_fast
 			
 			loop2_fast:
@@ -274,23 +281,10 @@ matchTemplateFast:
 				# y > height - 8
 				bgt $s1 $t4 loop2_fast_exit
 				
-				#$v0 will store our offset for Image pixels
-				#computes the offset (row) for the image
-				add $t0 $s0 $s1 #y+j
-				lw $t1 4($a0) # loads the width
-				mult $t0 $t1 # (y+j) * width
-				mflo $t0 
-				add $t0 $t0 $s2 #adds the +x offset
-				li $t4 4
-				mult $t0 $t4 #multiply by 4
-				mflo $t0
-				lw $t1 0($a0) # loads the imageBufferAddress
-				add $v0 $t0 $t1 #address +  4* (y+j) * height
-			
 				j loop3_fast
 				
 				loop3_fast:
-					
+				
 					lw $t4 4($a0)
 					addi $t4 $t4 -8
 					# x > width - 8
@@ -306,6 +300,7 @@ matchTemplateFast:
 					sub $t1 $t1 $t7
 					abs $t1 $t1
 					add $t2 $t2 $t1
+					
 					
 					lbu $t1 4($v0)
 					lw $t7 24($sp)
@@ -366,11 +361,12 @@ matchTemplateFast:
 					
 					li $s2 0
 					addi $s1 $s1 1
+					
 					addi $s3 $s3 28
+					addi $v0 $v0 28
 					
 					j loop2_fast
 			
-				
 			loop2_fast_exit:
 				li $s1 0
 				addi $s0 $s0 1
@@ -382,39 +378,7 @@ matchTemplateFast:
 			addi $sp $sp 4
 			jr $ra	
 	
-exit_matchTemplateFast:
-	
-	
-#a0: x
-#a1: y
-#v0: returns the intensity at (x,y) pixel
-getTemplateIntensity:
-	addi $sp $sp -4
-	sw $ra, 0($sp)
-	
 
-	
-	
-	
-	
-	
-	lw $ra 0($sp)
-	addi $sp $sp 4
-	
-#a0: x
-#a1: y
-#v0: returns the intensity at (x,y) pixel
-getImageIntensity:
-	addi $sp $sp -4
-	sw $ra, 0($sp)
-	
-	
-	
-	
-	
-	
-	lw $ra 0($sp)
-	addi $sp $sp 4
 	
 	
 	
