@@ -28,7 +28,7 @@ main:	la $a0, imageBufferInfo
 	la $a0, imageBufferInfo
 	la $a1, templateBufferInfo
 	la $a2, errorBufferInfo
-	jal matchTemplateFast        # MATCHING DONE HERE
+	jal matchTemplateFast      # MATCHING DONE HERE
 	la $a0, errorBufferInfo
 	jal findBest
 	la $a0, imageBufferInfo
@@ -55,14 +55,16 @@ matchTemplate:
 	li $s2 0
 	li $s3 0
 	
-	#
+	move $s4 $a0 #loads imagebufferinfo int0 $s4
+	move $s5 $a1 #loads templateBufferInfo into $s5
+	move $s6 $a2 #loads errorBufferInfo into $s6
 	
 	j loop1
 	
 ###################
 	loop1:
-		la $t0 imageBufferInfo
-		lw $t1 8($t0)
+
+		lw $t1 8($s4)
 		addi $t1 $t1 -8
 		
 		bgt $s0 $t1 loop1_exit
@@ -70,8 +72,7 @@ matchTemplate:
 	
 ###############################	
 		loop2:
-			la $t0 imageBufferInfo
-			lw $t1 4($t0)
+			lw $t1 4($s4)
 			addi $t1 $t1 -8
 			
 			bgt $s1 $t1 loop2_exit
@@ -88,7 +89,7 @@ matchTemplate:
 					#IMPLEMENT CODE FOR SAD[x,y] += abs( I[x+i][y+j] - T[i][j] );
 					
 					#loads parameters for getImagePixel(struct imageBufferInfo *image, int row, int column)
-					la $a0 imageBufferInfo
+					move $a0 $s4
 					move $a1 $s0
 					add $a1 $a1 $s2
 					move $a2 $s1
@@ -103,7 +104,7 @@ matchTemplate:
 					sw $v0, 0($sp)
 					
 					#loads parameters for the getTemplatePixel(struct templateBufferInfo *template, int row, int column)
-					la $a0 templateBufferInfo
+					move $a0 $s5
 					move $a1 $s2
 					move $a2 $s3
 					
@@ -127,7 +128,7 @@ matchTemplate:
 					sw $t1 0($sp)
 					
 					#adds the difference to the errorBuffer
-					la $a0 errorBufferInfo	
+					move $a0 $s6	
 					move $a1 $s0
 					move $a2 $s1					
 					jal getPixelAddress
