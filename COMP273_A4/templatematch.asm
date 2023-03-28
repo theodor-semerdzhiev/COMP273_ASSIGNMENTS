@@ -204,24 +204,39 @@ getPixelAddress:
 # matchTemplateFast( bufferInfo imageBufferInfo, bufferInfo templateBufferInfo, bufferInfo errorBufferInfo )
 # NOTE: struct bufferInfo { int *buffer, int width, int height, char* filename }
 matchTemplateFast:	
+	#THIS IMPLEMENTATION AS BEEN OPTIMIZED TO DEATH
 	
-	# TODO: write this function!
+	#REGISTER CONVENTIONS:
+	# $v0: image pointer
+	# $v1: template pointer
+	# $s0, $s1, $s2: our outer, middle and inner iteration count registers respectively 
+	# $s3: error buffer pointer
+	# $s4: will contain memory length for one row of the image (4*width)
+	# $s5: contains height-8 bound for middle loop
+	# $s6: contains width-8 bound for inner loop
+	# $s7: will contain the memory offset for the image pointer
+	# $t0 to $t7: will contain the template image pixel intensities for one row of the template image
 	
 	#ADDS TO STACK
 	addi $sp $sp -4
 	sw $ra, 0($sp)
 	
-	#iteration numbers
+	#sets iteration numbers to 0
 	li $s0 0
 	li $s1 0
 	li $s2 0
+	
 	lw $v1 0($a1) #stores the initial address for the templateBuffer
 	
-	#computes the height of image * 4, stores into $s4
+	#computes the width of image * 4, stores into $s4
 	lw $t0 4($a0)
 	li $t1 4
 	mult $t1 $t0
 	mflo $s4
+	
+	#we will increment this register ($s7, image offset) by $s4 each iteration
+	#this is because we must start at the first row (therefore 0 is the starting point)
+	li $s7 0
 	
 	#computes our 2 inner for loop bounds, so that we dont have to recompute that each iteration
 	
@@ -234,26 +249,17 @@ matchTemplateFast:
 	lw $t0 8($a0)
 	addi $t0 $t0 -8
 	move $s6 $t0
-	j loop1_fast
+	
+	j loop1_fast #starts iteration
 		
 		loop1_fast:
 			# if j >= 8 goto loop1_fast_exit
 			bge $s0 8 loop1_fast_exit
 			
-			#What I do is save the address of the start of the template buffer in $v1
-			#I then simply add offset 4 each time I want to access the next pixel
-			#The way the values are stored in memory, I can just increment the pointer by 4 8 (32) times
-			#which will interate through '1' row of the template
+			lw $v0 0($a0) #loads the initial image buffer
+			add $v0 $v0 $s7 # adds image offset to initial address of image buffer
 			
-			#computes the inital image address, taking into consideration the +y
-			
-			lw $v0 0($a0) #stores the initial image buffer
-			#$s4 contains the height * 4, computed at the begginning, preventing redundant computation
-			mult $s0 $s4
-			mflo $t0
-			add $v0 $v0 $t0 # adds offset to intinial address of image buffer
-			
-			# computes the pixel Intensities
+			#computes the intensities of the first row of the template
 			lbu $t0 0($v1)
 			lbu $t1 4($v1)
 			lbu $t2 8($v1)
@@ -262,10 +268,11 @@ matchTemplateFast:
 			lbu $t5 20($v1)
 			lbu $t6 24($v1)						
 			lbu $t7 28($v1)
-			#increments $v1 to the next row
+			
+			#increments $v1 to the next row of our template image
 			addi $v1 $v1 32
 			
-			lw $s3 0($a2) #stores the initial address of the error buffer
+			lw $s3 0($a2) #stores the initial address of the error buffer into $s3
 			
 			j loop2_fast
 			
@@ -323,7 +330,7 @@ matchTemplateFast:
 					abs $t9 $t9
 					add $t8 $t8 $t9
 					
-					#this increments our Image pointer
+					#increments our Image pointer
 					addi $v0 $v0 4
 					
 					#adds the difference stored in $t8 to the errorBuffer
@@ -332,28 +339,25 @@ matchTemplateFast:
 					sw $t9 0($s3)
 					
 					addi $s2 $s2 1 #increments int x (for loop)
-					addi $s3 $s3 4 #increments out error buffer pointer
-					
+					addi $s3 $s3 4 #increments our error buffer pointer
 					j loop3_fast
 				
 				loop3_fast_exit:
-					
 					li $s2 0
 					addi $s1 $s1 1
-					
 					addi $s3 $s3 28 #since bound is height-8, this make sure that we are at the beginning of the next row
 					addi $v0 $v0 28 #since bound is height-8, this make sure that we are at the beginning of the next row
-					
 					j loop2_fast
 			
 			loop2_fast_exit:
 				li $s1 0
 				addi $s0 $s0 1
+				add $s7 $s7 $s4 #adds height*4 ($s4) to our image offset	
 				j loop1_fast
+				
 		
 		loop1_fast_exit:
-			#POPS STACK
-			lw $ra 0($sp)
+			lw $ra 0($sp) #POPS STACK
 			addi $sp $sp 4
 			jr $ra	
 	
@@ -493,7 +497,7 @@ pebNotEOL:	add $t0, $t0, 4
 
 ##########################################################
 
-#Prints new line character, used for debugging purposes
+#Prints new line character, used for debugging purposes, just ignore this
 printNewLine:
 	#adds to the stack
 	addi $sp $sp -4
