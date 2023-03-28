@@ -192,7 +192,6 @@ getPixelAddress:
 	
 	lw $t0 ($a0) # loads the address of the image
 	
-	
 	add $v0 $v0 $t0 # address + 4(width * row + col)
 	
 	#pops stack
@@ -200,7 +199,6 @@ getPixelAddress:
 	addi $sp $sp 4
 	
 	jr $ra	
-
 	
 ##########################################################
 # matchTemplateFast( bufferInfo imageBufferInfo, bufferInfo templateBufferInfo, bufferInfo errorBufferInfo )
@@ -218,6 +216,24 @@ matchTemplateFast:
 	li $s1 0
 	li $s2 0
 	lw $v1 0($a1) #stores the initial address for the templateBuffer
+	
+	#computes the height of image * 4, stores into $s4
+	lw $t0 4($a0)
+	li $t1 4
+	mult $t1 $t0
+	mflo $s4
+	
+	#computes our 2 inner for loop bounds, so that we dont have to recompute that each iteration
+	
+	# width - 8, stores into $s5
+	lw $t0 4($a0)
+	addi $t0 $t0 -8
+	move $s5 $t0
+	
+	#height - 8, stores into $s6
+	lw $t0 8($a0)
+	addi $t0 $t0 -8
+	move $s6 $t0
 	j loop1_fast
 		
 		loop1_fast:
@@ -225,20 +241,17 @@ matchTemplateFast:
 			bge $s0 8 loop1_fast_exit
 			
 			#What I do is save the address of the start of the template buffer in $v1
-			#I then simply add 4 each time I want to access the next pixel
-			#The way the values are stored in memory, I can just increment the pointer by 4 8 times
+			#I then simply add offset 4 each time I want to access the next pixel
+			#The way the values are stored in memory, I can just increment the pointer by 4 8 (32) times
 			#which will interate through '1' row of the template
 			
 			#computes the inital image address, taking into consideration the +y
+			
 			lw $v0 0($a0) #stores the initial image buffer
-			#takes into account the +y offset 
-			lw $t0 4($a0)
-			mult $s0 $t0
+			#$s4 contains the height * 4, computed at the begginning, preventing redundant computation
+			mult $s0 $s4
 			mflo $t0
-			li $t1 4
-			mult $t0 $t1
-			mflo $t0
-			add $v0 $v0 $t0
+			add $v0 $v0 $t0 # adds offset to intinial address of image buffer
 			
 			# computes the pixel Intensities
 			lbu $t0 0($v1)
@@ -249,110 +262,74 @@ matchTemplateFast:
 			lbu $t5 20($v1)
 			lbu $t6 24($v1)						
 			lbu $t7 28($v1)
-			
+			#increments $v1 to the next row
 			addi $v1 $v1 32
 			
-			#saves them to the stack
-			addi $sp $sp -4
-			sw $t0 0($sp)
-			addi $sp $sp -4
-			sw $t1 0($sp)
-			addi $sp $sp -4
-			sw $t2 0($sp)
-			addi $sp $sp -4
-			sw $t3	0($sp)
-			addi $sp $sp -4
-			sw $t4 0($sp)
-			addi $sp $sp -4
-			sw $t5 0($sp)
-			addi $sp $sp -4
-			sw $t6 0($sp)
-			addi $sp $sp -4
-			sw $t7	0($sp)
-			
 			lw $s3 0($a2) #stores the initial address of the error buffer
-			
 			
 			j loop2_fast
 			
 			loop2_fast:
-				#loads height if image
-				#la $s3 imageBufferInfo
-				lw $t4 8($a0)
-				addi $t4 $t4 -8
 				# y > height - 8
-				bgt $s1 $t4 loop2_fast_exit
+				bgt $s1 $s6 loop2_fast_exit
 				
 				j loop3_fast
 				
 				loop3_fast:
-				
-					lw $t4 4($a0)
-					addi $t4 $t4 -8
 					# x > width - 8
-					bgt $s2 $t4 loop3_fast_exit	
+					bgt $s2 $s5 loop3_fast_exit	
 					
-					
-					# $t2 is gonna contain the sum of the difference
+					# $t8 is gonna contain the sum of the difference
 					# we will add the difference to the errorbuffer at the end
-					li $t2 0
+					li $t8 0
 					
-					lbu $t1 0($v0)
-					lw $t7 28($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 0($v0)
+					sub $t9 $t9 $t0
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
+					lbu $t9 4($v0)
+					sub $t9 $t9 $t1
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 4($v0)
-					lw $t7 24($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 8($v0)
+					sub $t9 $t9 $t2
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 8($v0)
-					lw $t7 20($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 12($v0)
+					sub $t9 $t9 $t3
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 12($v0)
-					lw $t7 16($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 16($v0)
+					sub $t9 $t9 $t4
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 16($v0)
-					lw $t7 12($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 20($v0)
+					sub $t9 $t9 $t5
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 20($v0)
-					lw $t7 8($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 24($v0)
+					sub $t9 $t9 $t6
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
-					lbu $t1 24($v0)
-					lw $t7 4($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
-					
-					lbu $t1 28($v0)
-					lw $t7 0($sp)
-					sub $t1 $t1 $t7
-					abs $t1 $t1
-					add $t2 $t2 $t1
+					lbu $t9 28($v0)
+					sub $t9 $t9 $t7
+					abs $t9 $t9
+					add $t8 $t8 $t9
 					
 					#this increments our Image pointer
 					addi $v0 $v0 4
 					
-					#adds the difference stored in $t2 to the errorBuffer
-					lw $t1 0($s3)
-					add $t1 $t1 $t2
-					sw $t1 0($s3)
+					#adds the difference stored in $t8 to the errorBuffer
+					lw $t9 0($s3)
+					add $t9 $t9 $t8
+					sw $t9 0($s3)
 					
 					addi $s2 $s2 1 #increments int x (for loop)
 					addi $s3 $s3 4 #increments out error buffer pointer
@@ -364,25 +341,21 @@ matchTemplateFast:
 					li $s2 0
 					addi $s1 $s1 1
 					
-					addi $s3 $s3 28
-					addi $v0 $v0 28
+					addi $s3 $s3 28 #since bound is height-8, this make sure that we are at the beginning of the next row
+					addi $v0 $v0 28 #since bound is height-8, this make sure that we are at the beginning of the next row
 					
 					j loop2_fast
 			
 			loop2_fast_exit:
 				li $s1 0
 				addi $s0 $s0 1
-				addi $sp $sp 32
 				j loop1_fast
 		
 		loop1_fast_exit:
+			#POPS STACK
 			lw $ra 0($sp)
 			addi $sp $sp 4
 			jr $ra	
-	
-
-	
-	
 	
 ###############################################################
 # loadImage( bufferInfo* imageBufferInfo )
