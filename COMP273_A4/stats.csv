@@ -1,7 +1,7 @@
-# StudentID, Case,        InstCnt, MemAccess, Misses, MicroSeconds
-260000000,   NaiveFA,     0,       0,         0,      0
-260000000,   Naive2Way,   0,       0,         0,      0
-260000000,   NaiveDirect, 0,       0,         0,      0
-260000000,   FastFA,      0,       0,         0,      0
-260000000,   Fast2Way,    0,       0,         0,      0
-260000000,   FastDirect,  0,       0,         0,      0
+# StudentID, Case,        	InstCnt, 	MemAccess, 	Misses, MicroSeconds
+261118892,   NaiveFA,		17448381,	4458666,	144283,	31876
+261118892,   Naive2Way,		17448381,	4458666,	765795,	94027
+261118892,   NaiveDirect,	17448381,	4458666,	765795,	94027
+261118892,   FastFA,		2109792,	363686,		18395,	3949
+261118892,   Fast2Way,		2109792,	363686,		72827,	9392
+261118892,   FastDirect,	2109792,	363686,		72827,	9392
