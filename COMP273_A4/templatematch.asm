@@ -8,8 +8,8 @@ templateBuffer: .space 0x100   # space for 8x8 template
 imageFileName:    .asciiz "pxlcon512x256cropgs.raw" 
 templateFileName: .asciiz "template8x8gsLRtest.raw"
 # struct bufferInfo { int *buffer, int width, int height, char* filename }
-imageBufferInfo:    .word displayBuffer  512 16  imageFileName
-errorBufferInfo:    .word errorBuffer    512 16  0
+imageBufferInfo:    .word displayBuffer  512 128  imageFileName
+errorBufferInfo:    .word errorBuffer    512 128  0
 templateBufferInfo: .word templateBuffer 8   8    templateFileName
 
 #######################
@@ -28,7 +28,7 @@ main:	la $a0, imageBufferInfo
 	la $a0, imageBufferInfo
 	la $a1, templateBufferInfo
 	la $a2, errorBufferInfo
-	jal matchTemplateFast    # MATCHING DONE HERE
+	jal matchTemplate    # MATCHING DONE HERE
 	la $a0, errorBufferInfo
 	jal findBest
 	la $a0, imageBufferInfo
